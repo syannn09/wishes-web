@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>洋灵许愿树 · 824</title>
+<style>
+  :root{
+    --pink:#ffb7d5; --pink-deep:#ff7fb0; --white-blossom:#fff4fa;
+    --gold:#ffd76b; --ink:#3a2233; --panel:rgba(255,255,255,.92);
+    --sky-top:#2b1b3d; --sky-mid:#4a2a5a; --sky-low:#7a4a72;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);}
+  body{
+    overflow:hidden;
+    background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 45%,var(--sky-low) 100%);
+    position:relative;
+  }
+  /* 背景图层：没图时透明（露出上面的渐变夜空兜底），有图时盖上 */
+  #bg{
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-size:cover;background-position:center bottom;background-repeat:no-repeat;
+    animation:bgFloat 18s ease-in-out infinite; /* 背景缓慢呼吸浮动，让静态图也有生命感 */
+  }
+  @keyframes bgFloat{0%,100%{transform:scale(1.04) translateY(0)}50%{transform:scale(1.08) translateY(-1.2%)}}
+
+  /* 星空 */
+  #stars{position:fixed;inset:0;pointer-events:none;z-index:0;}
+  .star{position:absolute;background:#fff;border-radius:50%;opacity:.7;animation:tw 3s infinite ease-in-out;}
+  @keyframes tw{0%,100%{opacity:.25}50%{opacity:.9}}
+
+  /* 顶部标题 */
+  header{position:fixed;top:0;left:0;right:0;z-index:6;text-align:center;padding:14px 12px 8px;pointer-events:none;}
+  header h1{margin:0;font-size:20px;letter-spacing:2px;color:#fff;text-shadow:0 2px 12px rgba(255,127,176,.7);}
+  header p{margin:4px 0 0;font-size:12px;color:#ffe0ef;opacity:.9;}
+  #countdown{margin-top:6px;font-size:12px;color:var(--gold);}
+
+  /* 树容器 */
+  #scene{position:absolute;inset:0;z-index:2;display:flex;align-items:flex-end;justify-content:center;}
+  #tree-wrap{position:relative;width:min(680px,96vw);height:78vh;margin-bottom:2vh;}
+  svg#tree{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+
+  /* 挂在树上的信封 */
+  .env{
+    position:absolute;width:34px;height:26px;transform:translate(-50%,-50%);
+    cursor:pointer;z-index:4;transition:transform .2s;
+    animation:sway 4s ease-in-out infinite;
+  }
+  .env:hover{transform:translate(-50%,-50%) scale(1.25);}
+  @keyframes sway{0%,100%{margin-top:0}50%{margin-top:5px}}
+  .env svg{width:100%;height:100%;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));}
+  .env.preset .body{fill:var(--gold);}
+  .env.preset.locked{opacity:.45;}
+  .env.fan .body{fill:var(--white-blossom);}
+  .env .glow{filter:drop-shadow(0 0 6px var(--pink-deep));}
+
+  /* 弹幕 */
+  #danmaku{position:fixed;inset:0;pointer-events:none;z-index:5;overflow:hidden;}
+  .dm{position:absolute;white-space:nowrap;font-size:14px;color:#fff;
+    background:rgba(255,127,176,.35);padding:4px 12px;border-radius:20px;
+    backdrop-filter:blur(2px);text-shadow:0 1px 3px rgba(0,0,0,.4);
+    animation:fly linear forwards;}
+  @keyframes fly{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+
+  /* 底部按钮 */
+  #actions{position:fixed;bottom:0;left:0;right:0;z-index:7;display:flex;gap:10px;justify-content:center;padding:14px 12px calc(14px + env(safe-area-inset-bottom));}
+  .btn{border:none;border-radius:26px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer;
+    box-shadow:0 6px 18px rgba(255,127,176,.45);transition:transform .15s;}
+  .btn:active{transform:scale(.96);}
+  .btn-primary{background:linear-gradient(135deg,var(--pink-deep),var(--pink));color:#fff;}
+  .btn-ghost{background:var(--panel);color:var(--pink-deep);}
+
+  /* 弹窗 */
+  .overlay{position:fixed;inset:0;z-index:20;background:rgba(30,15,35,.55);backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;padding:18px;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--panel);border-radius:22px;width:100%;max-width:400px;padding:22px;
+    box-shadow:0 20px 60px rgba(0,0,0,.4);animation:pop .25s ease;max-height:86vh;overflow:auto;}
+  @keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal h3{margin:0 0 12px;font-size:18px;color:var(--pink-deep);}
+  .modal .close{float:right;border:none;background:none;font-size:22px;cursor:pointer;color:#b98;line-height:1;}
+  textarea,input{width:100%;border:1.5px solid #ffd6e6;border-radius:12px;padding:11px;font-size:15px;
+    font-family:inherit;margin-bottom:12px;resize:none;outline:none;}
+  textarea:focus,input:focus{border-color:var(--pink-deep);}
+  .hint{font-size:12px;color:#b07;margin:-6px 0 10px;min-height:16px;}
+  .hint.err{color:#e0356b;}
+  .letter-body{white-space:pre-wrap;line-height:1.7;font-size:15px;color:var(--ink);
+    background:#fff8fc;border-radius:14px;padding:16px;border:1px dashed #ffc4dd;}
+  .letter-meta{font-size:12px;color:#b98;margin-top:10px;text-align:right;}
+
+  /* 查看更多列表 */
+  #list-modal .item{background:#fff8fc;border:1px solid #ffe0ef;border-radius:12px;padding:10px 12px;margin-bottom:8px;}
+  #list-modal .item .n{font-weight:600;color:var(--pink-deep);font-size:13px;}
+  #list-modal .item .t{font-size:14px;margin-top:2px;line-height:1.5;word-break:break-word;}
+  #list-modal .item .d{font-size:11px;color:#b98;margin-top:4px;}
+  .pager{display:flex;justify-content:center;gap:12px;margin-top:8px;}
+  .pager button{border:none;background:#ffe0ef;color:var(--pink-deep);border-radius:10px;padding:6px 14px;cursor:pointer;font-size:13px;}
+  .pager button:disabled{opacity:.4;}
+
+  /* 烟花 */
+  #fireworks{position:fixed;inset:0;z-index:8;pointer-events:none;display:none;}
+  .toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:30;
+    background:rgba(58,34,51,.92);color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;
+    opacity:0;transition:opacity .3s;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+  <div id="bg"></div>
+  <div id="stars"></div>
+
+  <header>
+    <h1>洋灵许愿树</h1>
+    <p>写下你的祝福，挂上这棵树 · 824</p>
+    <div id="countdown"></div>
+  </header>
+
+  <div id="scene">
+    <div id="tree-wrap">
+      <svg id="tree" viewBox="0 0 680 620" preserveAspectRatio="xMidYMax meet">
+        <!-- 树干 -->
+        <path d="M340 600 C332 500 330 440 330 400 C330 360 320 330 300 300
+                 M340 400 C350 360 380 340 410 320
+                 M330 380 C300 360 270 350 240 330
+                 M336 340 C360 320 390 315 420 300
+                 M334 330 C305 315 280 315 255 300"
+              fill="none" stroke="#5a3b2e" stroke-width="16" stroke-linecap="round"/>
+        <path d="M340 600 C338 520 336 470 335 430"
+              fill="none" stroke="#6b4638" stroke-width="26" stroke-linecap="round"/>
+        <!-- 花冠（两色樱花，用许多小圆点堆出来） -->
+        <g id="blossoms"></g>
+      </svg>
+      <!-- 信封会用 JS 动态插入到这里 -->
+    </div>
+  </div>
+
+  <div id="danmaku"></div>
+
+  <div id="actions">
+    <button class="btn btn-primary" id="btn-wish">✍️ 写愿望</button>
+    <button class="btn btn-ghost" id="btn-more">🌸 查看更多</button>
+  </div>
+
+  <!-- 写愿望弹窗 -->
+  <div class="overlay" id="wish-modal">
+    <div class="modal">
+      <button class="close" data-close>×</button>
+      <h3>写下你的愿望</h3>
+      <input id="wish-name" maxlength="16" placeholder="你的昵称（可留空）" />
+      <textarea id="wish-text" rows="4" maxlength="120" placeholder="写下想对洋灵说的话…"></textarea>
+      <div class="hint" id="wish-hint">最多 120 字</div>
+      <button class="btn btn-primary" id="wish-submit" style="width:100%;">挂上树 🌸</button>
+    </div>
+  </div>
+
+  <!-- 读信弹窗 -->
+  <div class="overlay" id="letter-modal">
+    <div class="modal">
+      <button class="close" data-close>×</button>
+      <h3 id="letter-title">信</h3>
+      <div class="letter-body" id="letter-body"></div>
+      <div class="letter-meta" id="letter-meta"></div>
+    </div>
+  </div>
+
+  <!-- 查看更多弹窗 -->
+  <div class="overlay" id="list-modal">
+    <div class="modal">
+      <button class="close" data-close>×</button>
+      <h3>所有祝福 🌸</h3>
+      <div id="list-body"></div>
+      <div class="pager">
+        <button id="prev-page">上一页</button>
+        <span id="page-info" style="font-size:13px;align-self:center;color:#b98;"></span>
+        <button id="next-page">下一页</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="fireworks"></canvas>
+  <div class="toast" id="toast"></div>
+
+  <!-- ====== 配置 ====== -->
+  <script src="./config.js"></script>
+  <script src="./sensitive-words.js"></script>
+  <script src="./preset-letters.js"></script>
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <script>
+  /* =========================================================
+     1. 基础工具
+  ========================================================= */
+  const $ = (s)=>document.querySelector(s);
+  const CHINA_OFFSET = 8*60; // UTC+8 分钟
+
+  function nowChina(){
+    const d = new Date();
+    const utc = d.getTime() + d.getTimezoneOffset()*60000;
+    return new Date(utc + CHINA_OFFSET*60000);
+  }
+  function isAug24China(){
+    const c = nowChina();
+    return c.getMonth()===7 && c.getDate()===24; // 7 = 八月
+  }
+  function chinaHour(){ return nowChina().getHours(); }
+
+  function toast(msg){
+    const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+    clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2200);
+  }
+
+  /* =========================================================
+     2. 星空 + 樱花花冠
+  ========================================================= */
+  (function stars(){
+    const box=$("#stars"); let html="";
+    for(let i=0;i<70;i++){
+      const s=Math.random()*2+1;
+      html+=`<div class="star" style="left:${Math.random()*100}%;top:${Math.random()*70}%;
+             width:${s}px;height:${s}px;animation-delay:${Math.random()*3}s"></div>`;
+    }
+    box.innerHTML=html;
+  })();
+
+  (function blossoms(){
+    const g=$("#blossoms");
+    // 花冠范围（对应树枝顶端区域）
+    const clusters=[[300,300],[240,330],[410,320],[420,300],[255,300],
+                    [335,430],[330,400],[360,340],[280,320],[380,300]];
+    let s="";
+    clusters.forEach(([cx,cy])=>{
+      for(let i=0;i<60;i++){
+        const a=Math.random()*Math.PI*2, r=Math.random()*90;
+        const x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r*0.8 - 40;
+        const rad=Math.random()*7+3;
+        const pink=Math.random()>0.5?'#ffb7d5':'#fff4fa';
+        s+=`<circle cx="${x}" cy="${y}" r="${rad}" fill="${pink}" opacity="${0.55+Math.random()*0.4}"/>`;
+      }
+    });
+    g.innerHTML=s;
+  })();
+
+  /* =========================================================
+     3. 信封的 SVG
+  ========================================================= */
+  function envSVG(){
+    return `<svg viewBox="0 0 40 30"><rect class="body" x="2" y="4" width="36" height="24" rx="3"/>
+      <path d="M2 6 L20 18 L38 6" fill="none" stroke="#c98" stroke-width="1.5"/>
+      <circle class="glow" cx="20" cy="16" r="2.5" fill="#ff7fb0"/></svg>`;
+  }
+  // 树上挂信封的坐标（百分比，落在花冠区）
+  const HANG_SPOTS = [
+    [44,42],[36,48],[58,45],[62,40],[40,52],[50,58],[48,50],[54,47],
+    [42,46],[56,52],[38,55],[60,50],[46,44],[52,54],[34,50],[64,46],
+    [45,60],[55,60],[41,58],[59,57],[47,63],[53,62],[43,40],[57,42],
+    [39,44],[61,44],[49,46],[51,48],[37,52],[63,52]
+  ];
+
+  /* =========================================================
+     4. Supabase
+  ========================================================= */
+  let sb=null;
+  if(window.CONFIG && window.CONFIG.SUPABASE_URL && window.CONFIG.SUPABASE_URL.indexOf("你的")<0){
+    sb = window.supabase.createClient(window.CONFIG.SUPABASE_URL, window.CONFIG.SUPABASE_ANON_KEY);
+  }
+
+  /* =========================================================
+     5. 敏感词
+  ========================================================= */
+  function hasSensitive(text){
+    const t=text.toLowerCase();
+    return (window.SENSITIVE_WORDS||[]).some(w=> w && t.includes(w.toLowerCase()));
+  }
+
+  /* =========================================================
+     6. 防刷
+  ========================================================= */
+  const SPAM = {
+    cooldownSec: 60,
+    maxTotal: 20,
+    lastKey: "yl_last_post",
+    cntKey: "yl_post_count"
+  };
+  function canPost(){
+    const last = +localStorage.getItem(SPAM.lastKey)||0;
+    const cnt  = +localStorage.getItem(SPAM.cntKey)||0;
+    const now  = Date.now();
+    if(now - last < SPAM.cooldownSec*1000){
+      const wait=Math.ceil((SPAM.cooldownSec*1000-(now-last))/1000);
+      return {ok:false,msg:`发得太快啦，请 ${wait} 秒后再试`};
+    }
+    if(cnt >= SPAM.maxTotal){
+      return {ok:false,msg:"你今天已经写了很多祝福啦 🌸"};
+    }
+    return {ok:true};
+  }
+  function markPosted(){
+    localStorage.setItem(SPAM.lastKey, Date.now());
+    localStorage.setItem(SPAM.cntKey, (+localStorage.getItem(SPAM.cntKey)||0)+1);
+  }
+
+  /* =========================================================
+     7. 预设信封（24 封，按中国时间逐时解锁）
+  ========================================================= */
+  function renderPresetEnvelopes(){
+    const wrap=$("#tree-wrap");
+    const letters = window.PRESET_LETTERS||[];
+    letters.forEach((L, i)=>{
+      const spot = HANG_SPOTS[i % HANG_SPOTS.length];
+      const el=document.createElement("div");
+      const unlocked = isAug24China() ? (chinaHour()>=i) : false;
+      el.className="env preset"+(unlocked?"":" locked");
+      el.style.left=spot[0]+"%"; el.style.top=(spot[1]-2)+"%";
+      el.innerHTML=envSVG();
+      el.title = unlocked ? L.title : `第 ${i+1} 封 · 待解锁`;
+      el.onclick=()=>{
+        if(!isAug24China()){ toast("预设信将在 8/24 当天逐时开启 ✨"); return; }
+        if(chinaHour()<i){ toast(`第 ${i+1} 封将在 ${i}:00（中国时间）开启`); return; }
+        openLetter(L.title, L.body, "洋灵许愿树 · 预设信");
+      };
+      wrap.appendChild(el);
+    });
+  }
+
+  /* =========================================================
+     8. 粉丝信封（最新 N 封挂树）
+  ========================================================= */
+  const TREE_LIMIT = 30;
+  function addFanEnvelope(msg, idx){
+    const wrap=$("#tree-wrap");
+    // 粉丝信封挂在预设信封之外的空位，随机微调
+    const base = HANG_SPOTS[(idx+8) % HANG_SPOTS.length];
+    const el=document.createElement("div");
+    el.className="env fan";
+    el.style.left=(base[0]+(Math.random()*8-4))+"%";
+    el.style.top=(base[1]+(Math.random()*8-4))+"%";
+    el.style.animationDelay=(Math.random()*4)+"s";
+    el.innerHTML=envSVG();
+    el.title=(msg.name||"匿名")+" 的祝福";
+    el.onclick=()=>openLetter(
+      (msg.name||"匿名")+" 的祝福",
+      msg.content,
+      new Date(msg.created_at).toLocaleString("zh-CN")
+    );
+    wrap.appendChild(el);
+  }
+
+  async function loadFanEnvelopes(){
+    if(!sb) return;
+    const {data,error}=await sb.from("messages")
+      .select("*").order("created_at",{ascending:false}).limit(TREE_LIMIT);
+    if(error){console.warn(error);return;}
+    (data||[]).forEach((m,i)=>addFanEnvelope(m,i));
+    // 顺便飘几条弹幕
+    (data||[]).slice(0,8).forEach((m,i)=>setTimeout(()=>flyDanmaku(m.content),i*1500));
+  }
+
+  /* =========================================================
+     9. 弹幕
+  ========================================================= */
+  function flyDanmaku(text){
+    const d=document.createElement("div");
+    d.className="dm"; d.textContent=text;
+    d.style.top=(15+Math.random()*45)+"%";
+    d.style.animationDuration=(9+Math.random()*6)+"s";
+    $("#danmaku").appendChild(d);
+    setTimeout(()=>d.remove(),16000);
+  }
+
+  /* =========================================================
+     10. 弹窗控制
+  ========================================================= */
+  function openLetter(title,body,meta){
+    $("#letter-title").textContent=title;
+    $("#letter-body").textContent=body;
+    $("#letter-meta").textContent=meta||"";
+    $("#letter-modal").classList.add("show");
+  }
+  document.querySelectorAll("[data-close]").forEach(b=>{
+    b.onclick=()=>b.closest(".overlay").classList.remove("show");
+  });
+  document.querySelectorAll(".overlay").forEach(o=>{
+    o.onclick=(e)=>{ if(e.target===o) o.classList.remove("show"); };
+  });
+  $("#btn-wish").onclick=()=>$("#wish-modal").classList.add("show");
+
+  /* =========================================================
+     11. 提交留言
+  ========================================================= */
+  $("#wish-submit").onclick=async ()=>{
+    const name=$("#wish-name").value.trim().slice(0,16);
+    const text=$("#wish-text").value.trim();
+    const hint=$("#wish-hint");
+    hint.className="hint";
+    if(!text){ hint.textContent="请先写点什么呀 🌸"; hint.classList.add("err"); return; }
+    if(hasSensitive(name+" "+text)){
+      hint.textContent="留言包含不适当内容，请修改"; hint.classList.add("err"); return;
+    }
+    const gate=canPost();
+    if(!gate.ok){ hint.textContent=gate.msg; hint.classList.add("err"); return; }
+
+    if(!sb){ toast("（演示模式）后台未连接，留言未保存"); $("#wish-modal").classList.remove("show"); return; }
+
+    $("#wish-submit").disabled=true;
+    const {data,error}=await sb.from("messages")
+      .insert({name:name||"匿名", content:text}).select().single();
+    $("#wish-submit").disabled=false;
+
+    if(error){ hint.textContent="提交失败，请稍后再试"; hint.classList.add("err"); return; }
+
+    markPosted();
+    addFanEnvelope(data, Math.floor(Math.random()*HANG_SPOTS.length));
+    flyDanmaku(text);
+    $("#wish-text").value=""; $("#wish-name").value="";
+    $("#wish-modal").classList.remove("show");
+    toast("你的祝福已挂上树 🌸");
+  };
+
+  /* =========================================================
+     12. 查看更多（翻页）
+  ========================================================= */
+  const PAGE_SIZE=10; let page=0; let totalCount=0;
+  $("#btn-more").onclick=async ()=>{ page=0; await loadPage(); $("#list-modal").classList.add("show"); };
+  $("#prev-page").onclick=async ()=>{ if(page>0){page--; await loadPage();} };
+  $("#next-page").onclick=async ()=>{ if((page+1)*PAGE_SIZE<totalCount){page++; await loadPage();} };
+
+  async function loadPage(){
+    const body=$("#list-body");
+    if(!sb){ body.innerHTML="<p style='color:#b98'>演示模式：后台未连接。</p>"; return; }
+    const from=page*PAGE_SIZE, to=from+PAGE_SIZE-1;
+    const {data,count,error}=await sb.from("messages")
+      .select("*",{count:"exact"}).order("created_at",{ascending:false}).range(from,to);
+    if(error){ body.innerHTML="<p style='color:#b98'>加载失败。</p>"; return; }
+    totalCount=count||0;
+    body.innerHTML=(data||[]).map(m=>`
+      <div class="item">
+        <div class="n">${escapeHtml(m.name||"匿名")}</div>
+        <div class="t">${escapeHtml(m.content)}</div>
+        <div class="d">${new Date(m.created_at).toLocaleString("zh-CN")}</div>
+      </div>`).join("") || "<p style='color:#b98'>还没有祝福，快来写第一条吧 🌸</p>";
+    $("#page-info").textContent=`第 ${page+1} 页 / 共 ${Math.max(1,Math.ceil(totalCount/PAGE_SIZE))} 页`;
+    $("#prev-page").disabled=page===0;
+    $("#next-page").disabled=(page+1)*PAGE_SIZE>=totalCount;
+  }
+  function escapeHtml(s){return (s||"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+  /* =========================================================
+     13. 倒计时 / 烟花
+  ========================================================= */
+  function updateCountdown(){
+    const c=nowChina();
+    if(isAug24China()){ $("#countdown").textContent="🎉 824 快乐 · 今天是属于洋灵的日子"; return; }
+    const target=new Date(Date.UTC(c.getFullYear(),7,24,0-8,0,0)); // 8/24 00:00 中国时间
+    let t=target - new Date();
+    if(t<0){ target.setUTCFullYear(c.getFullYear()+1); t=target-new Date(); }
+    const d=Math.floor(t/864e5), h=Math.floor(t%864e5/36e5), m=Math.floor(t%36e5/6e4);
+    $("#countdown").textContent=`距离 824 还有 ${d} 天 ${h} 小时 ${m} 分`;
+  }
+
+  // —— 烟花动画 ——
+  let fwRunning=false;
+  function startFireworks(){
+    if(fwRunning) return; fwRunning=true;
+    const cv=$("#fireworks"); cv.style.display="block";
+    const ctx=cv.getContext("2d");
+    function resize(){cv.width=innerWidth;cv.height=innerHeight;}
+    resize(); addEventListener("resize",resize);
+    const parts=[]; const colors=["#ff7fb0","#ffd76b","#ffb7d5","#a0e7ff","#fff4fa"];
+    function boom(x,y){
+      const col=colors[Math.floor(Math.random()*colors.length)];
+      for(let i=0;i<50;i++){
+        const a=Math.PI*2*i/50, sp=Math.random()*4+2;
+        parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:60,col});
+      }
+    }
+    function loop(){
+      ctx.fillStyle="rgba(30,15,35,.2)";ctx.fillRect(0,0,cv.width,cv.height);
+      if(Math.random()<0.05) boom(Math.random()*cv.width,Math.random()*cv.height*0.6);
+      parts.forEach((p,i)=>{
+        p.x+=p.vx;p.y+=p.vy;p.vy+=0.04;p.life--;
+        ctx.globalAlpha=Math.max(0,p.life/60);
+        ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,2.2,0,7);ctx.fill();
+        if(p.life<=0)parts.splice(i,1);
+      });
+      ctx.globalAlpha=1;
+      if(fwRunning)requestAnimationFrame(loop);
+    }
+    loop();
+  }
+
+  /* =========================================================
+     14. 启动
+  ========================================================= */
+  // 背景图（在 config.js 里填了 BG_IMAGE 就自动用；没填就用渐变夜空兜底）
+  if(window.CONFIG && window.CONFIG.BG_IMAGE){
+    $("#bg").style.backgroundImage = `url("${window.CONFIG.BG_IMAGE}")`;
+  }
+
+  renderPresetEnvelopes();
+  loadFanEnvelopes();
+  updateCountdown();
+  setInterval(updateCountdown,30000);
+  if(isAug24China()) startFireworks();
+  // 每 10 分钟检查一次是否进入 824（跨零点自动放烟花 + 刷新解锁）
+  setInterval(()=>{ if(isAug24China()){ startFireworks(); } }, 600000);
+  </script>
+</body>
+</html>
