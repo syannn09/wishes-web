@@ -83,7 +83,7 @@
   // 尝试用当前 KEY 拉取列表，成功=密钥对
   async function enter(){
     try{
-      const rows=await rpc("admin_list_letters",{admin_key:KEY});
+      const rows=await rpc("admin_list_letters",{p_key:KEY});
       $("#gate").classList.add("hidden");
       $("#panel").classList.remove("hidden");
       render(rows);
@@ -101,10 +101,10 @@
     enter();
   };
   $("#logoutBtn").onclick=()=>{ localStorage.removeItem("yl_admin_key"); location.reload(); };
-  $("#reloadBtn").onclick=async ()=>{ try{ render(await rpc("admin_list_letters",{admin_key:KEY})); toast("已刷新"); }catch(e){ toast("刷新失败"); } };
+  $("#reloadBtn").onclick=async ()=>{ try{ render(await rpc("admin_list_letters",{p_key:KEY})); toast("已刷新"); }catch(e){ toast("刷新失败"); } };
 
   $("#addBtn").onclick=async ()=>{
-    try{ await rpc("admin_add_letter",{admin_key:KEY}); render(await rpc("admin_list_letters",{admin_key:KEY})); toast("已新增一封，往下拉编辑"); }
+    try{ await rpc("admin_add_letter",{p_key:KEY}); render(await rpc("admin_list_letters",{p_key:KEY})); toast("已新增一封，往下拉编辑"); }
     catch(e){ toast("新增失败"); }
   };
 
@@ -153,19 +153,19 @@
     const g=(c)=>el.querySelector(c);
     try{
       await rpc("admin_update_letter",{
-        admin_key:KEY, p_id:id,
+        p_key:KEY, p_id:id,
         p_title:g(".f-title").value, p_body:g(".f-body").value,
         p_image:g(".f-image").value, p_link:g(".f-link").value,
         p_link_text:g(".f-linktext").value,
         p_is_live:g(".live").checked, p_sort:parseInt(g(".f-sort").value)||0
       });
       toast(quiet?(g(".live").checked?"已上线 ✅":"已下线"):"已保存 ✅");
-      if(quiet) render(await rpc("admin_list_letters",{admin_key:KEY}));
+      if(quiet) render(await rpc("admin_list_letters",{p_key:KEY}));
     }catch(e){ toast("保存失败"); }
   }
   async function delOne(id){
     if(!confirm("确定删除这封信？")) return;
-    try{ await rpc("admin_delete_letter",{admin_key:KEY,p_id:id}); render(await rpc("admin_list_letters",{admin_key:KEY})); toast("已删除"); }
+    try{ await rpc("admin_delete_letter",{p_key:KEY,p_id:id}); render(await rpc("admin_list_letters",{p_key:KEY})); toast("已删除"); }
     catch(e){ toast("删除失败"); }
   }
 
