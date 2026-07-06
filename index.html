@@ -6,138 +6,111 @@
 <title>洋灵许愿树 · 824</title>
 <style>
   :root{
-    --pink:#ffc2dd; --pink-deep:#ff7fb0; --pink-soft:#ffd9e8; --white-blossom:#fff6fb;
-    --gold:#ffd76b; --gold-deep:#f5b942; --ink:#3a2233; --panel:rgba(255,255,255,.95);
-    --sky-0:#1a1030; --sky-1:#3b1f52; --sky-2:#6a3568; --sky-3:#a85a7e;
+    /* 应援色：天色 #32B5E1，洋红 #F90092 */
+    --sky-blue:#32b5e1; --magenta:#f90092;
+    --pink-deep:#f90092; --pink-soft:#8fdcf3; --white-blossom:#eafaff;
+    --gold:#ffd76b; --gold-deep:#f5b942; --ink:#2a2740; --panel:rgba(255,255,255,.96);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;height:100%;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);}
-  body{
-    overflow:hidden;position:relative;
-    background:linear-gradient(180deg,var(--sky-0) 0%,var(--sky-1) 38%,var(--sky-2) 70%,var(--sky-3) 100%);
-  }
+  body{overflow:hidden;position:relative;background:#eaf6fb;}
 
-  /* 背景图层（方案1：氛围图，可选） */
-  #bg{position:fixed;inset:0;z-index:0;pointer-events:none;background-size:cover;background-position:center bottom;background-repeat:no-repeat;animation:bgFloat 20s ease-in-out infinite;}
-  @keyframes bgFloat{0%,100%{transform:scale(1.05)}50%{transform:scale(1.1) translateY(-1.2%)}}
+  /* 背景图：铺满，顶部对齐（保留上方比心的手），下方用应援色柔和过渡 */
+  #bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-size:cover;background-position:center top;background-repeat:no-repeat;
+    animation:bgFloat 22s ease-in-out infinite;}
+  @keyframes bgFloat{0%,100%{transform:scale(1.03)}50%{transform:scale(1.07)}}
+  /* 底部渐变：把白底往应援色淡淡带一点，让树和按钮区更融合 */
+  #bg-fade{position:fixed;left:0;right:0;bottom:0;height:52%;z-index:0;pointer-events:none;
+    background:linear-gradient(180deg,rgba(234,246,251,0) 0%,rgba(200,238,250,.35) 45%,rgba(255,214,240,.5) 100%);}
 
-  /* 远处光晕（月光/氛围） */
-  #glow{position:fixed;left:50%;top:14%;width:60vh;height:60vh;transform:translateX(-50%);z-index:0;pointer-events:none;
-    background:radial-gradient(circle,rgba(255,220,235,.28),rgba(255,220,235,0) 62%);filter:blur(6px);}
-  #moon{position:fixed;right:14%;top:9%;width:64px;height:64px;border-radius:50%;z-index:0;pointer-events:none;
-    background:radial-gradient(circle at 38% 38%,#fff8ee,#ffe9c7 60%,#f6d79a);
-    box-shadow:0 0 40px 12px rgba(255,235,200,.45);}
-
-  /* 星空 */
-  #stars{position:fixed;inset:0;pointer-events:none;z-index:1;}
-  .star{position:absolute;background:#fff;border-radius:50%;animation:tw 3s infinite ease-in-out;}
-  @keyframes tw{0%,100%{opacity:.2}50%{opacity:.95}}
-
-  /* 飘落花瓣 */
+  /* 飘落花瓣（应援色） */
   #petals{position:fixed;inset:0;pointer-events:none;z-index:3;overflow:hidden;}
-  .petal{position:absolute;top:-6vh;width:14px;height:14px;background:var(--pink);border-radius:80% 0 80% 0;opacity:.85;
-    animation:fall linear forwards;}
-  @keyframes fall{
-    0%{transform:translateY(0) translateX(0) rotate(0);opacity:0}
-    10%{opacity:.9}
-    100%{transform:translateY(112vh) translateX(14vw) rotate(520deg);opacity:.15}
-  }
+  .petal{position:absolute;top:-6vh;border-radius:80% 0 80% 0;opacity:.8;animation:fall linear forwards;}
+  @keyframes fall{0%{transform:translateY(0) rotate(0);opacity:0}10%{opacity:.85}100%{transform:translateY(112vh) translateX(12vw) rotate(520deg);opacity:.1}}
 
-  /* 标题 */
-  header{position:fixed;top:0;left:0;right:0;z-index:6;text-align:center;padding:calc(16px + env(safe-area-inset-top)) 14px 8px;pointer-events:none;}
-  header h1{margin:0;font-size:clamp(22px,6vw,30px);letter-spacing:3px;color:#fff;
-    text-shadow:0 2px 16px rgba(255,127,176,.85),0 0 30px rgba(255,180,210,.5);}
-  header p{margin:5px 0 0;font-size:clamp(11px,3.2vw,13px);color:#ffe0ef;opacity:.92;letter-spacing:1px;}
-  #countdown{margin-top:7px;font-size:clamp(11px,3.4vw,13px);color:var(--gold);font-weight:600;letter-spacing:.5px;}
+  /* 标题（深色，白底看得清） */
+  header{position:fixed;top:0;left:0;right:0;z-index:6;text-align:center;padding:calc(14px + env(safe-area-inset-top)) 14px 8px;pointer-events:none;}
+  header h1{margin:0;font-size:clamp(21px,5.6vw,28px);letter-spacing:3px;font-weight:800;
+    background:linear-gradient(90deg,var(--sky-blue),var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 1px 8px rgba(255,255,255,.6);}
+  header p{margin:5px 0 0;font-size:clamp(11px,3.1vw,13px);color:#5a5570;letter-spacing:1px;font-weight:500;}
+  #countdown{margin-top:6px;font-size:clamp(11px,3.3vw,13px);color:var(--magenta);font-weight:700;letter-spacing:.5px;}
 
-  /* 场景 / 树 */
-  #scene{position:absolute;inset:0;z-index:2;display:flex;align-items:flex-end;justify-content:center;}
-  #tree-wrap{position:relative;width:min(560px,100vw);height:82vh;margin-bottom:8vh;}
-  svg#tree{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
-  .leaf-sway{transform-box:fill-box;transform-origin:center bottom;animation:treeBreath 7s ease-in-out infinite;}
+  /* 场景 / 树：缩小、移到画面下方当点缀 */
+  #scene{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;align-items:flex-end;justify-content:center;height:100%;pointer-events:none;}
+  #tree-wrap{position:relative;width:min(380px,86vw);height:46vh;margin-bottom:9vh;pointer-events:auto;}
+  svg#tree{position:absolute;inset:0;width:100%;height:100%;overflow:visible;
+    filter:drop-shadow(0 8px 20px rgba(120,80,140,.25));}
+  #blossoms{transform-box:fill-box;transform-origin:center bottom;animation:treeBreath 7s ease-in-out infinite;}
   @keyframes treeBreath{0%,100%{transform:rotate(-.6deg)}50%{transform:rotate(.6deg)}}
 
-  /* 信封 */
-  .env{position:absolute;width:30px;height:23px;transform:translate(-50%,-50%);cursor:pointer;z-index:5;
-    transition:transform .25s;animation:sway 4.5s ease-in-out infinite;}
-  .env:hover{transform:translate(-50%,-50%) scale(1.3);}
-  @keyframes sway{0%,100%{margin-top:0}50%{margin-top:6px}}
-  .env svg{width:100%;height:100%;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));}
-  .env.lit .body{fill:var(--gold);}
-  .env.lit{animation:sway 4.5s ease-in-out infinite, litPulse 2.4s ease-in-out infinite;}
-  @keyframes litPulse{0%,100%{filter:drop-shadow(0 0 4px var(--gold))}50%{filter:drop-shadow(0 0 12px var(--gold-deep))}}
-  .env.locked .body{fill:#6a5a6a;}
-  .env.locked{opacity:.5;}
-  .env .flap{stroke:rgba(120,80,60,.5);}
+  /* 信封：画在 SVG 里，与树同坐标系，永远贴合花冠 */
+  .env-g{cursor:pointer;}
+  .env-g .ebody{fill:#8fdcf3;stroke:rgba(90,60,50,.3);stroke-width:.6;}
+  .env-g .eflap{fill:none;stroke:rgba(90,60,50,.45);stroke-width:1;}
+  .env-g.lit .ebody{fill:var(--gold);animation:litPulse 2.4s ease-in-out infinite;}
+  .env-g.locked .ebody{fill:#b9b3c4;}
+  .env-g.locked{opacity:.6;}
+  @keyframes litPulse{0%,100%{filter:drop-shadow(0 0 1px var(--gold))}50%{filter:drop-shadow(0 0 4px var(--gold-deep))}}
+  @keyframes esway{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
 
   /* 弹幕 */
   #danmaku{position:fixed;inset:0;pointer-events:none;z-index:7;overflow:hidden;}
   .dm{position:absolute;white-space:nowrap;font-size:clamp(13px,3.6vw,15px);color:#fff;
-    background:rgba(255,127,176,.32);padding:5px 14px;border-radius:20px;backdrop-filter:blur(3px);
-    text-shadow:0 1px 3px rgba(0,0,0,.45);box-shadow:0 2px 10px rgba(0,0,0,.15);animation:fly linear forwards;}
-  .dm b{color:var(--gold);font-weight:600;margin-right:6px;}
+    background:linear-gradient(135deg,rgba(50,181,225,.9),rgba(249,0,146,.82));padding:6px 15px;border-radius:20px;
+    text-shadow:0 1px 3px rgba(0,0,0,.3);box-shadow:0 3px 12px rgba(120,80,140,.25);animation:fly linear forwards;}
+  .dm b{color:#fff8c4;font-weight:700;margin-right:6px;}
   @keyframes fly{from{transform:translateX(100vw)}to{transform:translateX(-120%)}}
 
   /* 底部按钮 */
   #actions{position:fixed;bottom:0;left:0;right:0;z-index:8;display:flex;gap:12px;justify-content:center;
     padding:14px 14px calc(18px + env(safe-area-inset-bottom));}
   .btn{border:none;border-radius:30px;padding:14px 26px;font-size:clamp(15px,4.2vw,16px);font-weight:700;cursor:pointer;
-    box-shadow:0 8px 22px rgba(255,127,176,.5);transition:transform .15s;letter-spacing:1px;}
+    box-shadow:0 8px 22px rgba(249,0,146,.35);transition:transform .15s;letter-spacing:1px;}
   .btn:active{transform:scale(.95);}
-  .btn-primary{background:linear-gradient(135deg,var(--pink-deep),var(--pink));color:#fff;}
-  .btn-ghost{background:var(--panel);color:var(--pink-deep);}
+  .btn-primary{background:linear-gradient(135deg,var(--magenta),var(--sky-blue));color:#fff;}
+  .btn-ghost{background:var(--panel);color:var(--magenta);}
 
   /* 弹窗 */
-  .overlay{position:fixed;inset:0;z-index:20;background:rgba(26,16,40,.6);backdrop-filter:blur(4px);
+  .overlay{position:fixed;inset:0;z-index:20;background:rgba(40,30,60,.5);backdrop-filter:blur(4px);
     display:none;align-items:center;justify-content:center;padding:18px;}
   .overlay.show{display:flex;}
-  .modal{background:var(--panel);border-radius:24px;width:100%;max-width:420px;padding:24px;
-    box-shadow:0 24px 70px rgba(0,0,0,.45);animation:pop .28s ease;max-height:88vh;overflow:auto;}
+  .modal{position:relative;background:var(--panel);border-radius:24px;width:100%;max-width:420px;padding:24px;
+    box-shadow:0 24px 70px rgba(0,0,0,.4);animation:pop .28s ease;max-height:88vh;overflow:auto;}
   @keyframes pop{from{transform:scale(.9) translateY(10px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
-  .modal h3{margin:0 0 14px;font-size:19px;color:var(--pink-deep);padding-right:28px;}
+  .modal h3{margin:0 0 14px;font-size:19px;color:var(--magenta);padding-right:28px;}
   .modal .close{position:absolute;top:14px;right:16px;border:none;background:none;font-size:26px;cursor:pointer;color:#c99;line-height:1;}
-  .modal{position:relative;}
-  textarea,input{width:100%;border:1.5px solid var(--pink-soft);border-radius:14px;padding:12px;font-size:16px;
-    font-family:inherit;margin-bottom:12px;resize:none;outline:none;}
-  textarea:focus,input:focus{border-color:var(--pink-deep);}
+  textarea,input{width:100%;border:1.5px solid var(--pink-soft);border-radius:14px;padding:12px;font-size:16px;font-family:inherit;margin-bottom:12px;resize:none;outline:none;}
+  textarea:focus,input:focus{border-color:var(--magenta);}
   .hint{font-size:12px;color:#b07;margin:-4px 0 12px;min-height:16px;}
   .hint.err{color:#e0356b;}
-
-  /* 读信内容 */
-  .letter-body{white-space:pre-wrap;line-height:1.8;font-size:16px;color:var(--ink);
-    background:#fff8fc;border-radius:16px;padding:18px;border:1px dashed var(--pink-soft);}
+  .letter-body{white-space:pre-wrap;line-height:1.8;font-size:16px;color:var(--ink);background:#f4fbff;border-radius:16px;padding:18px;border:1px dashed var(--pink-soft);}
   .letter-img{width:100%;border-radius:14px;margin-top:14px;display:block;}
-  .letter-link{display:inline-block;margin-top:14px;background:linear-gradient(135deg,var(--pink-deep),var(--pink));
-    color:#fff;text-decoration:none;padding:11px 20px;border-radius:24px;font-weight:600;font-size:15px;}
+  .letter-link{display:inline-block;margin-top:14px;background:linear-gradient(135deg,var(--magenta),var(--sky-blue));color:#fff;text-decoration:none;padding:11px 20px;border-radius:24px;font-weight:600;font-size:15px;}
   .letter-meta{font-size:12px;color:#b98;margin-top:12px;text-align:right;}
-
-  /* 查看更多列表 */
-  #list-modal .item{background:#fff8fc;border:1px solid var(--pink-soft);border-radius:14px;padding:12px 14px;margin-bottom:10px;}
-  #list-modal .item .n{font-weight:700;color:var(--pink-deep);font-size:13px;}
+  #list-modal .item{background:#f4fbff;border:1px solid var(--pink-soft);border-radius:14px;padding:12px 14px;margin-bottom:10px;}
+  #list-modal .item .n{font-weight:700;color:var(--magenta);font-size:13px;}
   #list-modal .item .t{font-size:15px;margin-top:3px;line-height:1.55;word-break:break-word;}
   #list-modal .item .d{font-size:11px;color:#b98;margin-top:5px;}
   .pager{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:8px;}
-  .pager button{border:none;background:var(--pink-soft);color:var(--pink-deep);border-radius:12px;padding:8px 16px;cursor:pointer;font-size:14px;font-weight:600;}
+  .pager button{border:none;background:var(--pink-soft);color:var(--magenta);border-radius:12px;padding:8px 16px;cursor:pointer;font-size:14px;font-weight:600;}
   .pager button:disabled{opacity:.4;}
 
-  /* 烟花 */
   #fireworks{position:fixed;inset:0;z-index:9;pointer-events:none;display:none;}
   .toast{position:fixed;top:calc(80px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:30;
-    background:rgba(58,34,51,.94);color:#fff;padding:11px 20px;border-radius:22px;font-size:14px;
-    opacity:0;transition:opacity .3s;max-width:86vw;text-align:center;}
+    background:rgba(42,39,64,.94);color:#fff;padding:11px 20px;border-radius:22px;font-size:14px;opacity:0;transition:opacity .3s;max-width:86vw;text-align:center;}
   .toast.show{opacity:1;}
 </style>
 </head>
 <body>
   <div id="bg"></div>
-  <div id="glow"></div>
-  <div id="moon"></div>
-  <div id="stars"></div>
+  <div id="bg-fade"></div>
   <div id="petals"></div>
 
   <header>
     <h1>洋灵许愿树</h1>
-    <p>写下你的祝福，让它飘过这片星空 · 824</p>
+    <p>写下你的祝福，让它飘过星空 · 824</p>
     <div id="countdown"></div>
   </header>
 
@@ -146,15 +119,16 @@
       <svg id="tree" viewBox="0 0 560 620" preserveAspectRatio="xMidYMax meet">
         <defs>
           <linearGradient id="trunkG" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#7a5140"/><stop offset="1" stop-color="#4c3227"/>
+            <stop offset="0" stop-color="#8a6250"/><stop offset="1" stop-color="#5a3d30"/>
           </linearGradient>
           <radialGradient id="crownGlow" cx="50%" cy="42%" r="55%">
-            <stop offset="0" stop-color="rgba(255,200,225,.35)"/><stop offset="100%" stop-color="rgba(255,200,225,0)"/>
+            <stop offset="0" stop-color="rgba(140,220,243,.4)"/><stop offset="100%" stop-color="rgba(140,220,243,0)"/>
           </radialGradient>
         </defs>
         <ellipse cx="280" cy="250" rx="230" ry="200" fill="url(#crownGlow)"/>
         <g id="branches"></g>
-        <g id="blossoms" class="leaf-sway"></g>
+        <g id="blossoms"></g>
+        <g id="env-layer"></g>
       </svg>
     </div>
   </div>
@@ -205,7 +179,6 @@
 
   <script src="./config.js"></script>
   <script src="./sensitive-words.js"></script>
-  <script src="./preset-letters.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="./app.js"></script>
 </body>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>洋灵许愿树 · 信件管理后台</title>
+<style>
+  :root{--sky-blue:#32b5e1;--magenta:#f90092;--ink:#2a2740;--soft:#eaf6fb;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);
+    background:linear-gradient(160deg,#eaf6fb,#ffe6f4);min-height:100vh;padding:16px;}
+  h1{font-size:20px;text-align:center;
+    background:linear-gradient(90deg,var(--sky-blue),var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 6px 20px rgba(120,80,140,.12);margin:0 auto 14px;max-width:640px;}
+  input,textarea{width:100%;border:1.5px solid #bfe6f3;border-radius:10px;padding:10px;font-size:15px;font-family:inherit;margin-bottom:10px;outline:none;}
+  input:focus,textarea:focus{border-color:var(--magenta);}
+  textarea{resize:vertical;min-height:70px;}
+  label{font-size:12px;color:#7a7590;font-weight:600;display:block;margin-bottom:3px;}
+  .btn{border:none;border-radius:24px;padding:11px 20px;font-size:15px;font-weight:700;cursor:pointer;color:#fff;
+    background:linear-gradient(135deg,var(--magenta),var(--sky-blue));box-shadow:0 5px 14px rgba(249,0,146,.3);}
+  .btn.small{padding:7px 14px;font-size:13px;}
+  .btn.ghost{background:#f0f4f8;color:var(--magenta);box-shadow:none;}
+  .btn.danger{background:#f4f4f6;color:#e0356b;box-shadow:none;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .letter{border:1px solid #eee;border-radius:14px;padding:14px;margin-bottom:12px;}
+  .letter.live{border-color:var(--sky-blue);background:#f4fbff;}
+  .badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+  .badge.on{background:#d7f5e3;color:#1a9d5a;}
+  .badge.off{background:#f0eef2;color:#998;}
+  .muted{color:#998;font-size:12px;}
+  .switch{margin-left:auto;}
+  #gate .card{max-width:380px;margin-top:12vh;text-align:center;}
+  .hidden{display:none;}
+  .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#2a2740;color:#fff;padding:10px 18px;border-radius:20px;opacity:0;transition:.3s;z-index:50;font-size:14px;}
+  .toast.show{opacity:1;}
+  .thumb{max-width:100%;border-radius:8px;margin:6px 0;}
+</style>
+</head>
+<body>
+  <div class="toast" id="toast"></div>
+
+  <!-- 登录门 -->
+  <div id="gate">
+    <h1>信件管理后台</h1>
+    <div class="card">
+      <p class="muted">请输入管理密钥进入</p>
+      <input id="keyInput" type="password" placeholder="管理密钥" />
+      <button class="btn" id="loginBtn" style="width:100%;">进入</button>
+      <p class="muted" style="margin-top:12px;">密钥只保存在这台设备上，别人打不开。</p>
+    </div>
+  </div>
+
+  <!-- 管理区 -->
+  <div id="panel" class="hidden">
+    <h1>洋灵许愿树 · 信件管理</h1>
+    <div class="card">
+      <div class="row">
+        <button class="btn" id="addBtn">＋ 新增一封信</button>
+        <button class="btn ghost small" id="reloadBtn">刷新</button>
+        <button class="btn ghost small" id="logoutBtn">退出</button>
+      </div>
+      <p class="muted" style="margin:10px 0 0;">「上线」的信才会出现在粉丝页面的树上。824 当天你想放哪封、几时放，点开关即可，立即生效。</p>
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <script src="./config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+  const $=(s)=>document.querySelector(s);
+  const sb=window.supabase.createClient(window.CONFIG.SUPABASE_URL, window.CONFIG.SUPABASE_ANON_KEY);
+  let KEY=localStorage.getItem("yl_admin_key")||"";
+
+  function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2200);}
+  function esc(s){return (s||"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+  async function rpc(fn,args){
+    const {data,error}=await sb.rpc(fn,args);
+    if(error) throw error;
+    return data;
+  }
+
+  // 尝试用当前 KEY 拉取列表，成功=密钥对
+  async function enter(){
+    try{
+      const rows=await rpc("admin_list_letters",{admin_key:KEY});
+      $("#gate").classList.add("hidden");
+      $("#panel").classList.remove("hidden");
+      render(rows);
+    }catch(e){
+      toast("密钥错误或连接失败");
+      $("#gate").classList.remove("hidden");
+      $("#panel").classList.add("hidden");
+    }
+  }
+
+  $("#loginBtn").onclick=async ()=>{
+    KEY=$("#keyInput").value.trim();
+    if(!KEY){ toast("请输入密钥"); return; }
+    localStorage.setItem("yl_admin_key",KEY);
+    enter();
+  };
+  $("#logoutBtn").onclick=()=>{ localStorage.removeItem("yl_admin_key"); location.reload(); };
+  $("#reloadBtn").onclick=async ()=>{ try{ render(await rpc("admin_list_letters",{admin_key:KEY})); toast("已刷新"); }catch(e){ toast("刷新失败"); } };
+
+  $("#addBtn").onclick=async ()=>{
+    try{ await rpc("admin_add_letter",{admin_key:KEY}); render(await rpc("admin_list_letters",{admin_key:KEY})); toast("已新增一封，往下拉编辑"); }
+    catch(e){ toast("新增失败"); }
+  };
+
+  function render(rows){
+    const box=$("#list"); 
+    if(!rows || !rows.length){ box.innerHTML='<div class="card muted">还没有信，点上面「新增一封信」开始。</div>'; return; }
+    box.innerHTML=rows.map(L=>`
+      <div class="card letter ${L.is_live?'live':''}" data-id="${L.id}">
+        <div class="row" style="margin-bottom:8px;">
+          <span class="badge ${L.is_live?'on':'off'}">${L.is_live?'● 已上线':'○ 未上线'}</span>
+          <span class="muted">排序 ${L.sort_order}</span>
+          <label class="switch row" style="margin:0;gap:6px;">
+            <input type="checkbox" class="live" ${L.is_live?'checked':''} style="width:auto;margin:0;"/> 上线
+          </label>
+        </div>
+        <label>标题</label>
+        <input class="f-title" value="${esc(L.title)}" placeholder="例如 00:00 · 824快乐"/>
+        <label>文字内容</label>
+        <textarea class="f-body" placeholder="信的正文…">${esc(L.body)}</textarea>
+        <label>图片网址（可空）</label>
+        <input class="f-image" value="${esc(L.image)}" placeholder="https://... 或 ./assets/1.jpg"/>
+        ${L.image?`<img class="thumb" src="${esc(L.image)}" alt=""/>`:''}
+        <label>链接（可空）</label>
+        <input class="f-link" value="${esc(L.link)}" placeholder="https://..."/>
+        <label>链接显示文字（可空）</label>
+        <input class="f-linktext" value="${esc(L.link_text)}" placeholder="点击查看"/>
+        <label>排序（数字小的排前面）</label>
+        <input class="f-sort" type="number" value="${L.sort_order}"/>
+        <div class="row">
+          <button class="btn small save">保存这封</button>
+          <button class="btn ghost small danger del">删除</button>
+        </div>
+      </div>
+    `).join("");
+
+    box.querySelectorAll(".letter").forEach(el=>{
+      const id=+el.dataset.id;
+      el.querySelector(".save").onclick=()=>saveOne(el,id);
+      el.querySelector(".del").onclick=()=>delOne(id);
+      // 勾选「上线」即时保存该开关
+      el.querySelector(".live").onchange=()=>saveOne(el,id,true);
+    });
+  }
+
+  async function saveOne(el,id,quiet){
+    const g=(c)=>el.querySelector(c);
+    try{
+      await rpc("admin_update_letter",{
+        admin_key:KEY, p_id:id,
+        p_title:g(".f-title").value, p_body:g(".f-body").value,
+        p_image:g(".f-image").value, p_link:g(".f-link").value,
+        p_link_text:g(".f-linktext").value,
+        p_is_live:g(".live").checked, p_sort:parseInt(g(".f-sort").value)||0
+      });
+      toast(quiet?(g(".live").checked?"已上线 ✅":"已下线"):"已保存 ✅");
+      if(quiet) render(await rpc("admin_list_letters",{admin_key:KEY}));
+    }catch(e){ toast("保存失败"); }
+  }
+  async function delOne(id){
+    if(!confirm("确定删除这封信？")) return;
+    try{ await rpc("admin_delete_letter",{admin_key:KEY,p_id:id}); render(await rpc("admin_list_letters",{admin_key:KEY})); toast("已删除"); }
+    catch(e){ toast("删除失败"); }
+  }
+
+  // 若本机存过密钥，直接尝试进入
+  if(KEY) enter();
+  </script>
+</body>
+</html>

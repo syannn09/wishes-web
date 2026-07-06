@@ -18,11 +18,12 @@ function toast(msg){
 }
 function escapeHtml(s){return (s||"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
-/* ---------- 星空 ---------- */
+/* ---------- 星空（B1 背景图已含星星，仅在存在 #stars 时才生成）---------- */
 (function stars(){
+  const box=$("#stars"); if(!box) return;
   let html=""; for(let i=0;i<90;i++){ const s=Math.random()*2.2+0.8;
     html+=`<div class="star" style="left:${Math.random()*100}%;top:${Math.random()*68}%;width:${s}px;height:${s}px;animation-delay:${Math.random()*3}s"></div>`; }
-  $("#stars").innerHTML=html;
+  box.innerHTML=html;
 })();
 
 /* ---------- 飘落花瓣 ---------- */
@@ -31,7 +32,7 @@ function spawnPetal(){
   const size=Math.random()*10+8;
   p.style.left=Math.random()*100+"vw";
   p.style.width=size+"px"; p.style.height=size+"px";
-  p.style.background=Math.random()>0.5?"var(--pink)":"var(--pink-soft)";
+  p.style.background=Math.random()>0.5?"var(--sky-blue)":"var(--magenta)";
   p.style.animationDuration=(7+Math.random()*7)+"s";
   p.style.setProperty("--x", (Math.random()*20-6)+"vw");
   $("#petals").appendChild(p);
@@ -72,7 +73,8 @@ function buildBlossoms(){
       const x=bx+Math.cos(a)*r, y=by+Math.sin(a)*r*0.82;
       const rad=Math.random()*8+3.5;
       const roll=Math.random();
-      const fill = roll<0.5 ? "#ffc2dd" : (roll<0.85 ? "#fff6fb" : "#ff9dc4");
+      // 双色应援：天蓝 #32B5E1 + 洋红 #F90092，少量浅色高光
+      const fill = roll<0.45 ? "#32b5e1" : (roll<0.9 ? "#f90092" : "#eafaff");
       s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}" fill="${fill}" opacity="${(0.5+Math.random()*0.45).toFixed(2)}"/>`;
     }
   }
@@ -80,31 +82,52 @@ function buildBlossoms(){
   const spots=[[cx,cy,180],[cx-120,cy+10,110],[cx+120,cy+10,110],[cx-60,cy-70,110],[cx+60,cy-70,110],
                [cx,cy+90,140],[cx-150,cy+80,80],[cx+150,cy+80,80],[cx,cy-110,90]];
   spots.forEach(([x,y,sp])=> cluster(x,y, Math.round(sp*1.6), sp));
-  // 少量金色花蕊高光点
+  // 少量高光花蕊点（浅蓝白）
   for(let i=0;i<40;i++){
     const a=Math.random()*Math.PI*2, r=Math.random()*200;
-    s+=`<circle cx="${(cx+Math.cos(a)*r).toFixed(1)}" cy="${(cy+Math.sin(a)*r*0.82).toFixed(1)}" r="1.6" fill="#ffe9a8" opacity=".8"/>`;
+    s+=`<circle cx="${(cx+Math.cos(a)*r).toFixed(1)}" cy="${(cy+Math.sin(a)*r*0.82).toFixed(1)}" r="1.6" fill="#d6f4ff" opacity=".85"/>`;
   }
   g.innerHTML=s;
 }
 buildBlossoms();
 
-/* ---------- 信封 SVG ---------- */
-function envSVG(){
-  return `<svg viewBox="0 0 40 30"><rect class="body" x="2" y="4" width="36" height="24" rx="3"/>
-    <path class="flap" d="M2 6 L20 18 L38 6" fill="none" stroke-width="1.5"/>
-    <circle cx="20" cy="16" r="2.2" fill="#ff7fb0"/></svg>`;
-}
-// 48 个挂点（落在花冠范围内，百分比坐标）
+/* ---------- 信封挂点：在树冠坐标系(560x620)内撒点，永远贴合花冠 ---------- */
+const SVG_NS="http://www.w3.org/2000/svg";
+// 花冠中心 (280,235)，在其范围内生成一批挂点（SVG 坐标）
 const HANG_SPOTS=(function(){
-  const arr=[]; const cx=50, cy=40;
-  for(let i=0;i<48;i++){
-    const a=(i/48)*Math.PI*2 + (i%2?0.3:0);
-    const r=12 + (i%4)*7 + Math.random()*4;
-    arr.push([ cx+Math.cos(a)*r*1.1, cy+Math.sin(a)*r*0.75 ]);
-  }
+  const arr=[]; const cx=280, cy=235;
+  const rings=[70,120,165,200];
+  let idx=0;
+  rings.forEach((rr,ri)=>{
+    const n=6+ri*4;
+    for(let k=0;k<n;k++){
+      const a=(k/n)*Math.PI*2 + ri*0.5;
+      const r=rr*(0.75+Math.random()*0.25);
+      arr.push([ cx+Math.cos(a)*r, cy+Math.sin(a)*r*0.82 ]);
+      idx++;
+    }
+  });
+  // 打乱，让上线顺序在树上分布自然
+  for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
   return arr;
 })();
+
+// 一个信封的 SVG 组（贴在花冠某点）
+function makeEnvelope(x,y,letter,idx){
+  const outer=document.createElementNS(SVG_NS,"g");
+  outer.setAttribute("transform",`translate(${x},${y})`);
+  const g=document.createElementNS(SVG_NS,"g");
+  g.setAttribute("class","env-g lit");
+  g.style.animation=`esway ${4+Math.random()*2}s ease-in-out ${Math.random()*3}s infinite`;
+  g.innerHTML=`
+    <rect class="ebody" x="-15" y="-11" width="30" height="22" rx="3"/>
+    <path class="eflap" d="M-15 -9 L0 2 L15 -9"/>
+    <circle cx="0" cy="0" r="2" fill="#f90092"/>`;
+  g.style.cursor="pointer";
+  g.addEventListener("click",()=>openLetter(letter));
+  outer.appendChild(g);
+  return outer;
+}
 
 /* ---------- Supabase ---------- */
 let sb=null;
@@ -132,28 +155,17 @@ function canPost(){
 }
 function markPosted(){ localStorage.setItem(SPAM.lastKey,Date.now()); localStorage.setItem(SPAM.cntKey,(+localStorage.getItem(SPAM.cntKey)||0)+1); }
 
-/* ---------- 预设信封（48 封，半小时逐亮，只看不写）---------- */
-function renderPresetEnvelopes(){
-  const wrap=$("#tree-wrap");
-  wrap.querySelectorAll(".env").forEach(e=>e.remove());
-  const letters=window.PRESET_LETTERS||[];
-  const passed=slotsPassed();
-  letters.forEach((L,i)=>{
-    const spot=HANG_SPOTS[i%HANG_SPOTS.length];
-    const lit = isAug24China() && i<=passed;   // 当天且已到该封的时间点（第i封在第i个半小时点亮起）
-    const el=document.createElement("div");
-    el.className="env "+(lit?"lit":"locked");
-    el.style.left=spot[0]+"%"; el.style.top=spot[1]+"%";
-    el.style.animationDelay=(Math.random()*4)+"s";
-    el.innerHTML=envSVG();
-    const h=Math.floor(i/2), m=(i%2===0)?"00":"30";
-    el.title = lit ? L.title : `将在 ${String(h).padStart(2,"0")}:${m}（中国时间）开启`;
-    el.onclick=()=>{
-      if(!isAug24China()){ toast("信件将在 8/24 当天逐封开启 ✨"); return; }
-      if(i>passed){ toast(`这封信将在 ${String(h).padStart(2,"0")}:${m} 开启`); return; }
-      openLetter(L);
-    };
-    wrap.appendChild(el);
+/* ---------- 信件：从数据库读「已上线」的信，挂到树上 ---------- */
+async function loadLiveLetters(){
+  const layer=$("#env-layer"); if(!layer) return;
+  layer.innerHTML="";
+  if(!sb){ return; }  // 演示模式：无后台，不显示信
+  const {data,error}=await sb.from("letters").select("*").eq("is_live",true).order("sort_order",{ascending:true});
+  if(error){ console.warn(error); return; }
+  (data||[]).forEach((L,i)=>{
+    const spot=HANG_SPOTS[i % HANG_SPOTS.length];
+    const letter={ title:L.title, text:L.body, image:L.image, link:L.link, linkText:L.link_text };
+    layer.appendChild(makeEnvelope(spot[0],spot[1],letter,i));
   });
 }
 
@@ -178,12 +190,25 @@ function flyDanmaku(text,name){
   $("#danmaku").appendChild(d);
   setTimeout(()=>d.remove(),18000);
 }
+let _dmPool=[];   // 已加载的留言池，循环飘
 async function loadDanmaku(){
   if(!sb) return;
-  const {data,error}=await sb.from("messages").select("*").order("created_at",{ascending:false}).limit(30);
+  const {data,error}=await sb.from("messages").select("*").order("created_at",{ascending:false}).limit(60);
   if(error){console.warn(error);return;}
-  (data||[]).forEach((m,i)=> setTimeout(()=>flyDanmaku(m.content,m.name), i*1800));
+  _dmPool=(data||[]);
+  // 首批错峰飘出
+  _dmPool.slice(0,10).forEach((m,i)=> setTimeout(()=>flyDanmaku(m.content,m.name), i*1500));
 }
+// 持续、适当地飘：每隔几秒从池里随机取一条飘出
+function startDanmakuLoop(){
+  setInterval(()=>{
+    if(!_dmPool.length) return;
+    const m=_dmPool[Math.floor(Math.random()*_dmPool.length)];
+    flyDanmaku(m.content, m.name);
+  }, 3500);
+}
+// 每 60 秒刷新一次留言池，让新留言也进来循环
+function refreshDanmakuPool(){ setInterval(loadDanmaku, 60000); }
 
 /* ---------- 弹窗关闭 ---------- */
 document.querySelectorAll("[data-close]").forEach(b=> b.onclick=()=>b.closest(".overlay").classList.remove("show"));
@@ -256,10 +281,14 @@ function startFireworks(){
 }
 
 /* ---------- 启动 ---------- */
-renderPresetEnvelopes();
-loadDanmaku();
+loadLiveLetters();          // 从数据库读已上线的信，挂上树
+loadDanmaku();              // 载入留言池
+startDanmakuLoop();         // 持续飘弹幕
+refreshDanmakuPool();       // 定期刷新留言池
 updateCountdown();
 setInterval(updateCountdown,30000);
 if(isAug24China()) startFireworks();
-// 每分钟检查：进入 824 放烟花；当天则刷新信封亮起进度（每半小时会多亮一封）
-setInterval(()=>{ if(isAug24China()){ startFireworks(); renderPresetEnvelopes(); } }, 60000);
+// 每 30 秒刷新一次树上的信：客户在后台新上线的信会自动出现，无需粉丝刷新
+setInterval(loadLiveLetters, 30000);
+// 进入 824 自动放烟花
+setInterval(()=>{ if(isAug24China()){ startFireworks(); } }, 60000);
