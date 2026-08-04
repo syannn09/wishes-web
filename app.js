@@ -1,5 +1,5 @@
 /* =========================================================
-   洋灵许愿树 v2 · 主逻辑
+   树信归期 v2 · 主逻辑
    - 48 封信，每半小时解锁一封（中国时间 824 当天）
    - 未解锁只显示预告，完整内容由服务端 RPC 控制不下发
    - 物料 × 作者 连连看（不储存进度）
@@ -440,20 +440,25 @@ function applyPhase(){
   // 连连看只在 823（预告期）出现
   $("#btn-match").style.display = (phase === "teaser") ? "" : "none";
   $("#subtitle").textContent =
-    phase === "teaser"  ? "先玩连连看，认识每一位创作者 🌸" :
+    phase === "teaser"  ? "点击信封 开启洋灵的平行时空" :
     phase === "reveal"  ? "每半小时，一封信挂上树" :
                           "48 封信，全部在这里了";
 }
 
 /* =========================================================
-   倒计时
+   相识计天：从 2016-08-24（中国时间）数到现在
 ========================================================= */
+function daysSinceMet(){
+  // nowChina() 和这里的 met 都是「中国墙上时间」同一坐标系，直接相减
+  const met = new Date(2016, 7, 24);
+  return Math.floor((nowChina() - met) / 864e5);
+}
+
 function updateCountdown(){
-  const c = nowChina();
   const phase = currentPhase();
 
   if(phase === "archive"){
-    $("#countdown").textContent = "🌸 824 已过 · 感谢每一位创作者";
+    $("#countdown").textContent = `🌸 相识 ${daysSinceMet()} 天 · 感谢每一位创作者`;
     return;
   }
   if(phase === "reveal"){
@@ -461,13 +466,8 @@ function updateCountdown(){
     $("#countdown").textContent = `🎉 824 快乐 · 已开启 ${Math.max(0,s+1)} / 48 封`;
     return;
   }
-  // teaser：倒数到 824 00:00
-  if(DEMO){ $("#countdown").textContent = "演示模式 · 预告期"; return; }
-  const target = new Date(Date.UTC(c.getFullYear(), 7, 24, -8, 0, 0));
-  let t = target - new Date();
-  if(t < 0){ target.setUTCFullYear(c.getFullYear()+1); t = target - new Date(); }
-  const d = Math.floor(t/864e5), h = Math.floor(t%864e5/36e5), m = Math.floor(t%36e5/6e4);
-  $("#countdown").textContent = `距离 824 还有 ${d} 天 ${h} 小时 ${m} 分`;
+  // teaser：不倒数了，改成从 2016.8.24 数「相识多少天」
+  $("#countdown").textContent = `相识 ${daysSinceMet()} 天 🌸`;
 }
 
 /* =========================================================
