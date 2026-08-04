@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 洋灵应援色气球：洋红 #F90092 + 天色 #32B5E1 -->
+  <!-- 气球线 -->
+  <path d="M24 40 C21 48, 30 52, 27 62" fill="none" stroke="#e37ab8"
+        stroke-width="1.9" stroke-linecap="round"/>
+  <path d="M42 44 C45 50, 36 54, 39 63" fill="none" stroke="#6ec4de"
+        stroke-width="1.9" stroke-linecap="round"/>
+
+  <!-- 洋红气球（左，略高） -->
+  <g>
+    <path d="M24 5 C33 5, 38 13, 38 21 C38 30, 30 40, 24 40 C18 40, 10 30, 10 21 C10 13, 15 5, 24 5 Z"
+          fill="#f90092"/>
+    <path d="M24 40 l-3 4.2 h6 z" fill="#c00070"/>
+    <ellipse cx="18" cy="14" rx="3" ry="4.4" fill="#fff" opacity=".45"
+             transform="rotate(-25 18 14)"/>
+  </g>
+
+  <!-- 天蓝气球（右，略低） -->
+  <g>
+    <path d="M42 9 C51 9, 56 17, 56 25 C56 34, 48 44, 42 44 C36 44, 28 34, 28 25 C28 17, 33 9, 42 9 Z"
+          fill="#32b5e1"/>
+    <path d="M42 44 l-3 4.2 h6 z" fill="#1b87ab"/>
+    <ellipse cx="36" cy="18" rx="3" ry="4.4" fill="#fff" opacity=".5"
+             transform="rotate(-25 36 18)"/>
+  </g>
+</svg>
