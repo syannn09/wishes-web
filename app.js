@@ -251,253 +251,157 @@ function openLetter(L){
 }
 
 /* =========================================================
-   连连看：左物料 → 右作者，拖线配对（不储存）
+   连连看 · 分关消除式（不储存进度）
+   1 作者 = 1 作品，48 对拆成每关 6 对。
+   点一个作品 → 点它的作者：对了两张卡化成樱花瓣飘走，
+   错了抖一下。全程没有连线，一屏永远只有 12 张卡。
 ========================================================= */
-const GAME = { items:[], authors:[], matched:new Set(), drag:null, picked:null, suppressClick:false };
+const PAIRS_PER_ROUND = 6;
+const GAME = { rounds:[], round:0, matchedInRound:0, picked:null };
 
-function buildGameData(){
-  // 连连看只在 823 预告期出现，那时一封都还没解锁，
-  // 所以这里不看解锁状态，只要绑了作者就能玩（作者本身不是秘密）
-  const pool = LETTERS.filter(L => L.author_id);
-  // 每位作者最多取 3 个物料，避免一位作者刷屏
-  const perAuthor = {};
-  const items = [];
-  pool.forEach(L => {
-    perAuthor[L.author_id] = (perAuthor[L.author_id]||0) + 1;
-    if(perAuthor[L.author_id] <= 3) items.push(L);
-  });
-
-  const authorMap = new Map();
-  items.forEach(L => {
-    if(!authorMap.has(L.author_id)){
-      authorMap.set(L.author_id, {
-        id:L.author_id, name:L.author_name, avatar:L.author_avatar, bio:L.author_bio, count:0
-      });
-    }
-    authorMap.get(L.author_id).count++;
-  });
-
-  GAME.items   = shuffle(items.slice(0, 12));   // 一局最多 12 个物料
-  GAME.authors = shuffle(Array.from(authorMap.values()));
-  GAME.matched = new Set();
-  GAME.picked  = null;
-  GAME.drag    = null;
-}
 function shuffle(a){
   const r = a.slice();
   for(let i=r.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [r[i],r[j]] = [r[j],r[i]]; }
   return r;
 }
 
-function renderGame(){
-  const ci = $("#col-items"), ca = $("#col-authors");
-  $("#game-done").classList.remove("show");
-  clearWires();
+function buildGameData(){
+  // 连连看只在 823 预告期出现，那时一封都还没解锁，
+  // 所以不看解锁状态，只要绑了作者就能玩（作者本身不是秘密）
+  const pool = shuffle(LETTERS.filter(L => L.author_id));
+  GAME.rounds = [];
+  for(let i = 0; i < pool.length; i += PAIRS_PER_ROUND){
+    GAME.rounds.push(pool.slice(i, i + PAIRS_PER_ROUND));
+  }
+  // 最后一关不足 2 对就并进前一关
+  if(GAME.rounds.length > 1 && GAME.rounds[GAME.rounds.length-1].length < 2){
+    GAME.rounds[GAME.rounds.length-2].push(...GAME.rounds.pop());
+  }
+  GAME.round = 0;
+  GAME.matchedInRound = 0;
+  GAME.picked = null;
+}
 
-  if(GAME.items.length < 2 || GAME.authors.length < 2){
+function renderGame(){
+  $("#game-done").classList.remove("show");
+  renderRound();
+}
+
+function renderRound(){
+  const ci = $("#col-items"), ca = $("#col-authors");
+  const list = GAME.rounds[GAME.round] || [];
+  GAME.matchedInRound = 0;
+  GAME.picked = null;
+
+  if(!GAME.rounds.length || list.length < 2){
     ci.innerHTML = `<div class="empty" style="color:var(--ink-soft);text-shadow:none">
-      还没有足够的物料<br>等信件解锁后再来玩 🌸</div>`;
+      作品还在准备中<br>晚点再来玩 🌸</div>`;
     ca.innerHTML = "";
     $("#game-score").textContent = "";
     return;
   }
 
-  ci.innerHTML = `<div class="col-head">物料</div>` + GAME.items.map(L => `
-    <div class="node node-item" data-id="${L.id}" data-author="${L.author_id}">
-      ${L.image ? `<img class="thumb" src="${escapeHtml(L.image)}" alt="" loading="lazy">` : ""}
-      <div class="nm">${escapeHtml(L.title || "物料")}</div>
-      <div class="sub">${slotLabel(L.slot)}</div>
-      <div class="port"></div>
+  // 左：作品（类型 chip + 作品名）；右：作者（头像 + 名字 + 身份）
+  // 两列各自打乱，顺序对不上才有得玩
+  ci.innerHTML = `<div class="col-head">作品</div>` + shuffle(list).map(L => `
+    <div class="node node-item" data-author="${L.author_id}">
+      ${L.tag ? `<span class="tag">${escapeHtml(L.tag)}</span>` : ""}
+      <div class="nm">${escapeHtml(L.title || "作品")}</div>
     </div>`).join("");
 
-  ca.innerHTML = `<div class="col-head">作者</div>` + GAME.authors.map(A => `
-    <div class="node node-author" data-author="${A.id}">
-      <div class="port"></div>
-      ${A.avatar ? `<img class="av" src="${escapeHtml(A.avatar)}" alt="">`
-                 : `<div class="av">${escapeHtml(initial(A.name))}</div>`}
+  ca.innerHTML = `<div class="col-head">作者</div>` + shuffle(list).map(L => `
+    <div class="node node-author" data-author="${L.author_id}">
+      ${L.author_avatar ? `<img class="av" src="${escapeHtml(L.author_avatar)}" alt="">`
+                        : `<div class="av">${escapeHtml(initial(L.author_name))}</div>`}
       <div style="min-width:0">
-        <div class="nm">${escapeHtml(A.name)}</div>
-        ${A.bio ? `<div class="sub">${escapeHtml(A.bio)}</div>` : ""}
+        <div class="nm">${escapeHtml(L.author_name)}</div>
+        ${L.author_bio ? `<div class="sub">${escapeHtml(L.author_bio)}</div>` : ""}
       </div>
-      <div class="cnt">${A.count} 个</div>
     </div>`).join("");
 
   updateScore();
-  bindDrag();
+
+  $$("#game-cols .node").forEach(node => {
+    node.addEventListener("click", ()=> onCardTap(node));
+  });
 }
 
 function updateScore(){
-  $("#game-score").textContent = `已连对 ${GAME.matched.size} / ${GAME.items.length}`;
+  $("#game-score").textContent =
+    `第 ${GAME.round+1} / ${GAME.rounds.length} 关 · 本关 ${GAME.matchedInRound} / ${(GAME.rounds[GAME.round]||[]).length} 对`;
 }
 
-/* ---------- 连线画布 ----------
-   坐标系 = #game-cols（会跟着一起滚动），所以线不会和卡片错位 */
-function clearWires(){ $("#wires").innerHTML = ""; ensureDefs(); }
-function syncWireCanvas(){
-  const cols = $("#game-cols");
-  $("#wires").style.height = cols.scrollHeight + "px";
-}
-function areaPoint(el, side){
-  const base = $("#game-cols").getBoundingClientRect();
-  const r = el.getBoundingClientRect();
-  return {
-    x: (side === "right" ? r.right : r.left) - base.left,
-    y: r.top + r.height/2 - base.top
-  };
-}
-// 把屏幕坐标换算到画布坐标
-function toCanvas(clientX, clientY){
-  const base = $("#game-cols").getBoundingClientRect();
-  return { x: clientX - base.left, y: clientY - base.top };
-}
-function drawWire(p1, p2, cls){
-  const path = document.createElementNS(SVG_NS, "path");
-  const dx = Math.abs(p2.x - p1.x) * 0.45;
-  path.setAttribute("d", `M${p1.x} ${p1.y} C${p1.x+dx} ${p1.y}, ${p2.x-dx} ${p2.y}, ${p2.x} ${p2.y}`);
-  path.setAttribute("fill", "none");
-  path.setAttribute("stroke-width", "3.5");
-  path.setAttribute("stroke-linecap", "round");
-  path.setAttribute("stroke", cls === "ok" ? "url(#goldG)" : "#f90092");
-  if(cls !== "ok") path.setAttribute("opacity", ".7");
-  path.dataset.kind = cls;
-  $("#wires").appendChild(path);
-  return path;
-}
-function ensureDefs(){
-  if($("#goldG")) return;
-  const defs = document.createElementNS(SVG_NS, "defs");
-  defs.innerHTML = `<linearGradient id="goldG" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#ffd76b"/><stop offset="1" stop-color="#f5b942"/>
-    </linearGradient>`;
-  $("#wires").appendChild(defs);
-}
-// 重画所有已连对的线（布局变化后位置会变）
-function redrawMatched(){
-  syncWireCanvas();
-  $$("#wires path").forEach(p => { if(p.dataset.kind === "ok") p.remove(); });
-  GAME.matched.forEach(id => {
-    const item = document.querySelector(`.node-item[data-id="${id}"]`);
-    if(!item) return;
-    const au = document.querySelector(`.node-author[data-author="${item.dataset.author}"]`);
-    if(!au) return;
-    drawWire(areaPoint(item,"right"), areaPoint(au,"left"), "ok");
-  });
-}
+/* ---- 点选：两列都能先点，点另一列的卡就判定 ---- */
+function onCardTap(node){
+  if(node.classList.contains("gone")) return;
 
-/* ---------- 交互：点选 + 拖拽 两种都支持 ----------
-   手机上「点物料 → 点作者」比拖拽可靠得多，所以两种并存。 */
-function bindDrag(){
-  ensureDefs();
-  syncWireCanvas();
-  $$("#col-items .node-item").forEach(node => {
-    node.addEventListener("pointerdown", onDragStart);
-    node.addEventListener("click", ()=> pickItem(node));
-  });
-  $$("#col-authors .node-author").forEach(node => {
-    node.addEventListener("click", ()=> pickAuthor(node));
-  });
-  $("#game-area").addEventListener("scroll", redrawMatched);
-}
-
-/* ---- 点选 ---- */
-function clearPick(){
+  if(GAME.picked === node){                       // 再点一次 = 取消
+    node.classList.remove("picked");
+    GAME.picked = null;
+    return;
+  }
+  if(!GAME.picked){                               // 第一张
+    GAME.picked = node;
+    node.classList.add("picked");
+    return;
+  }
+  const a = GAME.picked, b = node;
+  const sameSide = a.classList.contains("node-item") === b.classList.contains("node-item");
+  if(sameSide){                                   // 同一列 → 换选
+    a.classList.remove("picked");
+    GAME.picked = b;
+    b.classList.add("picked");
+    return;
+  }
+  // 一作品一作者 → 判定
+  a.classList.remove("picked");
   GAME.picked = null;
-  $$(".node").forEach(n => n.classList.remove("picked","dimmed-node"));
-}
-function pickItem(node){
-  if(GAME.suppressClick){ GAME.suppressClick = false; return; }   // 刚拖完，别再当点击
-  if(GAME.matched.has(+node.dataset.id)) return;
-  if(GAME.picked === node){ clearPick(); return; }
-  clearPick();
-  GAME.picked = node;
-  node.classList.add("picked");
-  // 把其他物料压暗，提示「现在去点作者」
-  $$("#col-items .node-item").forEach(n => { if(n !== node && !n.classList.contains("matched")) n.classList.add("dimmed-node"); });
-}
-function pickAuthor(node){
-  if(GAME.suppressClick){ GAME.suppressClick = false; return; }
-  if(!GAME.picked){ toast("先点左边一个物料 🌸"); return; }
-  const item = GAME.picked;
-  clearPick();
-  resolveMatch(item, node);
+  if(a.dataset.author === b.dataset.author){
+    matchPair(a, b);
+  }else{
+    a.classList.add("shake"); b.classList.add("shake");
+    setTimeout(()=>{ a.classList.remove("shake"); b.classList.remove("shake"); }, 420);
+  }
 }
 
-/* ---- 判定（点选和拖拽共用） ---- */
-function resolveMatch(item, author){
-  if(author.dataset.author === item.dataset.author){
-    GAME.matched.add(+item.dataset.id);
-    item.classList.add("matched");
-    author.classList.add("matched");
-    drawWire(areaPoint(item,"right"), areaPoint(author,"left"), "ok");
-    updateScore();
-    if(GAME.matched.size === GAME.items.length){
-      setTimeout(()=>{ $("#game-done").classList.add("show"); startFireworks(); }, 450);
+/* ---- 配对成功：樱花瓣飘走，卡片淡出 ---- */
+function matchPair(a, b){
+  [a, b].forEach(el => { burstPetals(el); el.classList.add("gone"); });
+  GAME.matchedInRound++;
+  updateScore();
+
+  if(GAME.matchedInRound >= (GAME.rounds[GAME.round]||[]).length){
+    if(GAME.round + 1 < GAME.rounds.length){
+      showRoundBanner(`第 ${GAME.round+1} 关完成 🌸`);
+      setTimeout(()=>{ GAME.round++; renderRound(); }, 950);
+    }else{
+      setTimeout(()=>{ $("#game-done").classList.add("show"); startFireworks(); }, 500);
     }
-    return true;
   }
-  item.classList.add("shake");
-  author.classList.add("shake");
-  setTimeout(()=>{ item.classList.remove("shake"); author.classList.remove("shake"); }, 420);
-  return false;
 }
 
-/* ---- 拖拽 ---- */
-function onDragStart(e){
-  const node = e.currentTarget;
-  if(GAME.matched.has(+node.dataset.id)) return;
-  node.classList.add("active");
-
-  const start = areaPoint(node, "right");
-  GAME.drag = { node, start, temp:null, moved:false, pointerId:e.pointerId };
-
-  // 注意：不要在这里 setPointerCapture —— 会让后续的 click 事件改道，
-  // 导致「点选」模式失效。等真正拖起来了再捕获。
-  node.addEventListener("pointermove", onDragMove);
-  node.addEventListener("pointerup",   onDragEnd);
-  node.addEventListener("pointercancel", onDragEnd);
-}
-
-function onDragMove(e){
-  if(!GAME.drag) return;
-  const d = GAME.drag;
-  // 移动超过阈值才算拖拽（否则当作点击，不阻止页面滚动）
-  const p = toCanvas(e.clientX, e.clientY);
-  if(!d.moved){
-    if(Math.hypot(p.x - d.start.x, p.y - d.start.y) < 12) return;
-    d.moved = true;
-    try{ d.node.setPointerCapture(d.pointerId); }catch(_){}   // 确认是拖拽后才捕获
+// 在卡片位置撒一把樱花瓣
+function burstPetals(el){
+  const area = $("#game-area");
+  const ar = area.getBoundingClientRect(), r = el.getBoundingClientRect();
+  for(let i = 0; i < 6; i++){
+    const p = document.createElement("div");
+    p.className = "pburst";
+    p.style.left = (r.left - ar.left + r.width/2 + (Math.random()*30-15)) + "px";
+    p.style.top  = (r.top  - ar.top  + r.height/2 + (Math.random()*16-8) + area.scrollTop) + "px";
+    p.style.background = Math.random() > 0.5 ? "var(--sakura)" : "var(--sakura-deep)";
+    p.style.setProperty("--dx", (Math.random()*90-45) + "px");
+    p.style.setProperty("--dy", (-30 - Math.random()*60) + "px");
+    area.appendChild(p);
+    setTimeout(()=>p.remove(), 900);
   }
-  e.preventDefault();
-  if(d.temp) d.temp.remove();
-  d.temp = drawWire(d.start, p, "temp");
-  $$("#col-authors .node-author").forEach(a => a.classList.remove("active"));
-  const hit = authorAt(e.clientX, e.clientY);
-  if(hit) hit.classList.add("active");
 }
 
-function onDragEnd(e){
-  if(!GAME.drag) return;
-  const { node, temp, moved } = GAME.drag;
-  if(temp) temp.remove();
-  node.classList.remove("active");
-  node.removeEventListener("pointermove", onDragMove);
-  node.removeEventListener("pointerup",   onDragEnd);
-  node.removeEventListener("pointercancel", onDragEnd);
-  $$("#col-authors .node-author").forEach(a => a.classList.remove("active"));
-  GAME.drag = null;
-
-  if(!moved) return;                 // 没拖动 → 交给 click 走点选逻辑
-  GAME.suppressClick = true;         // 拖过了 → 别再触发点选
-  setTimeout(()=>{ GAME.suppressClick = false; }, 350);
-
-  const target = authorAt(e.clientX, e.clientY);
-  if(target) resolveMatch(node, target);
-}
-
-// 手指/鼠标落点下的作者卡
-function authorAt(x, y){
-  const el = document.elementFromPoint(x, y);
-  return el ? el.closest(".node-author") : null;
+function showRoundBanner(text){
+  const b = $("#round-banner");
+  b.querySelector("span").textContent = text;
+  b.classList.add("show");
+  setTimeout(()=> b.classList.remove("show"), 900);
 }
 
 /* =========================================================
@@ -517,8 +421,8 @@ $$(".overlay").forEach(o => o.onclick = (e)=>{ if(e.target === o) closeOverlay(o
 
 $("#btn-match").onclick = ()=>{
   buildGameData();
+  renderGame();
   openOverlay("#match-modal");
-  requestAnimationFrame(renderGame);   // 等布局稳定再算坐标
 };
 $("#game-restart").onclick = ()=>{ buildGameData(); renderGame(); };
 
@@ -526,8 +430,6 @@ $("#btn-sakura").onclick = ()=>{
   if(sakuraTimer){ stopSakura(); toast("樱花已停 🌿"); }
   else{ startSakura(); toast("樱花飘落中 🌸"); }
 };
-
-addEventListener("resize", ()=>{ if($("#match-modal").classList.contains("show")) redrawMatched(); });
 
 /* =========================================================
    阶段切换：控制连连看按钮 / 副标题

@@ -183,44 +183,53 @@
   #game-score{font-size:12px;font-weight:700;color:var(--sky-blue);margin-top:4px;}
   .game-close{position:absolute;top:10px;right:12px;width:32px;height:32px;border:none;border-radius:50%;
     background:rgba(58,53,80,.1);color:var(--ink);font-size:19px;line-height:1;cursor:pointer;z-index:5;}
-  /* 整个游戏区一起滚动，保证「物料」和「作者」永远在同一屏内可见 */
-  #game-area{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;}
-  #wires{position:absolute;top:0;left:0;width:100%;pointer-events:none;z-index:2;}
-  #game-cols{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 10px 20px;z-index:3;}
-  .col{display:flex;flex-direction:column;gap:9px;min-width:0;}
-  .col-head{position:sticky;top:0;z-index:4;font-size:11px;font-weight:800;letter-spacing:1px;
-    color:var(--ink-soft);text-align:center;padding:5px 0 7px;
-    background:linear-gradient(180deg,var(--panel) 60%,rgba(255,255,255,0));}
-  .node{position:relative;border-radius:13px;padding:9px 11px;cursor:pointer;user-select:none;min-width:0;
+  /* 分关消除式：每关 6 对，一屏放下不滚动，没有任何连线。
+     配对成功 → 两张卡化成樱花瓣飘走；配错 → 抖一下。 */
+  #game-area{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    display:flex;flex-direction:column;}
+  #game-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 12px 18px;flex:1;
+    align-content:start;}
+  .col{display:flex;flex-direction:column;gap:8px;min-width:0;}
+  .col-head{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--ink-soft);
+    text-align:center;padding:2px 0 4px;}
+  .node{position:relative;border-radius:13px;padding:10px 12px;cursor:pointer;user-select:none;min-width:0;
     background:#fff;box-shadow:0 3px 10px rgba(120,80,140,.16);border:2px solid transparent;
-    font-size:13px;line-height:1.4;transition:border-color .2s,transform .15s,opacity .3s;}
-  .node:active{transform:scale(.97);}
-  .node.matched{border-color:var(--gold);background:linear-gradient(135deg,#fffbf0,#fff5dc);
-    box-shadow:0 0 16px rgba(245,185,66,.6);cursor:default;}
-  .node.active{border-color:var(--magenta);}
+    font-size:13px;line-height:1.4;
+    transition:border-color .2s,transform .3s,opacity .3s,box-shadow .2s;}
+  .node:active{transform:scale(.96);}
+  .node.picked{border-color:var(--magenta);
+    box-shadow:0 0 0 4px rgba(249,0,146,.14),0 3px 10px rgba(120,80,140,.16);}
   .node.shake{animation:nodeShake .4s;}
   @keyframes nodeShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-  .node .thumb{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block;background:#eef4fa;}
-  .node .nm{font-weight:700;color:var(--ink);overflow-wrap:anywhere;}
-  .node .sub{font-size:11px;color:var(--ink-soft);margin-top:2px;overflow-wrap:anywhere;}
-  /* 作者卡：头像在上、名字在下，窄屏也不会一个字一行 */
-  .node-author{display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;padding:11px 9px;}
-  .node-author .av{width:38px;height:38px;border-radius:50%;flex:none;object-fit:cover;
+  /* 配对成功：缩小淡出，占位保留避免版面跳动 */
+  .node.gone{transform:scale(.55);opacity:0;pointer-events:none;}
+  .node .nm{font-weight:700;color:var(--ink);overflow-wrap:anywhere;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .node .tag{display:inline-block;font-size:10px;font-weight:800;color:#fff;border-radius:8px;
+    padding:2px 8px;margin-bottom:5px;letter-spacing:1px;
+    background:linear-gradient(135deg,var(--magenta),var(--sky-blue));}
+  /* 作者卡：头像 + 名字 + 身份，横排紧凑 */
+  .node-author{display:flex;align-items:center;gap:9px;}
+  .node-author .av{width:34px;height:34px;border-radius:50%;flex:none;object-fit:cover;
     background:linear-gradient(135deg,var(--sakura),var(--sky-blue));
-    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;}
-  .node-author .cnt{font-size:11px;font-weight:700;color:var(--sky-blue);
-    background:rgba(50,181,225,.12);border-radius:10px;padding:2px 9px;}
-  @media(min-width:620px){
-    .node-author{flex-direction:row;text-align:left;}
-    .node-author .cnt{margin-left:auto;}
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;}
+  .node-author .sub{font-size:11px;color:var(--ink-soft);overflow-wrap:anywhere;
+    display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+  /* 配对成功飘出的花瓣 */
+  .pburst{position:absolute;width:11px;height:11px;pointer-events:none;z-index:8;
+    border-radius:80% 0 80% 0;animation:pburst .8s ease-out forwards;}
+  @keyframes pburst{
+    from{transform:translate(0,0) rotate(0) scale(1);opacity:.95}
+    to  {transform:translate(var(--dx),var(--dy)) rotate(220deg) scale(.4);opacity:0}
   }
-  .port{position:absolute;top:50%;transform:translateY(-50%);width:13px;height:13px;border-radius:50%;
-    background:var(--magenta);box-shadow:0 0 0 3px rgba(249,0,146,.2);}
-  .col-items .port{right:-7px;} .col-authors .port{left:-7px;}
-  .node.matched .port{background:var(--gold-deep);box-shadow:0 0 0 3px rgba(245,185,66,.3);}
-  /* 选中待连状态 */
-  .node.picked{border-color:var(--magenta);box-shadow:0 0 0 4px rgba(249,0,146,.14),0 3px 10px rgba(120,80,140,.16);}
-  .node.dimmed-node{opacity:.45;}
+  /* 过关横幅 */
+  #round-banner{position:absolute;inset:0;z-index:7;display:none;align-items:center;justify-content:center;
+    pointer-events:none;}
+  #round-banner.show{display:flex;}
+  #round-banner span{background:rgba(255,255,255,.95);border-radius:20px;padding:14px 30px;
+    font-size:17px;font-weight:800;color:var(--magenta);box-shadow:0 10px 30px rgba(120,80,140,.25);
+    animation:bannerPop .5s ease;}
+  @keyframes bannerPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
   #game-done{position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;
     justify-content:center;background:rgba(255,255,255,.94);text-align:center;padding:24px;}
   #game-done.show{display:flex;}
@@ -273,20 +282,20 @@
     <div class="modal-game">
       <button class="game-close" data-close>×</button>
       <div class="game-head">
-        <h3>物料 × 作者 连连看</h3>
-        <p>点一个物料，再点它的作者（也可以直接拖线）</p>
+        <h3>作品 × 作者 连连看</h3>
+        <p>点一个作品，再点它的作者，配对成功就化成樱花</p>
         <div id="game-score"></div>
       </div>
       <div id="game-area">
-        <svg id="wires"></svg>
         <div id="game-cols">
           <div class="col col-items" id="col-items"></div>
           <div class="col col-authors" id="col-authors"></div>
         </div>
+        <div id="round-banner"><span></span></div>
         <div id="game-done">
           <div class="big">🌸</div>
-          <h4>全部连对啦！</h4>
-          <p>你已经认全了所有物料的作者<br>谢谢每一位创作者</p>
+          <h4>全部配对完成！</h4>
+          <p>你认识了每一位创作者<br>谢谢他们为 824 做的一切</p>
           <button class="btn btn-primary" id="game-restart">再玩一次</button>
         </div>
       </div>
