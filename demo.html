@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>洋灵许愿树 · 三天效果预览</title>
+<style>
+  :root{
+    --sky-blue:#32b5e1; --magenta:#f90092;
+    --sakura:#f7b5cf; --sakura-deep:#e8749f;
+    --ink:#3a3550; --ink-soft:#7a7590;
+    --panel:rgba(255,255,255,.94);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;min-height:100%;
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);}
+  body{position:relative;padding:0 0 48px;}
+  body::before{content:"";position:fixed;inset:0;z-index:-2;
+    background-image:url("./assets/sakura-bg.jpg");
+    background-size:cover;background-position:center bottom;
+    filter:blur(7px) saturate(.95);transform:scale(1.06);}
+  body::after{content:"";position:fixed;inset:0;z-index:-1;
+    background:linear-gradient(160deg,rgba(240,248,252,.88),rgba(255,235,246,.9));}
+
+  header{text-align:center;padding:calc(30px + env(safe-area-inset-top)) 18px 8px;}
+  header h1{margin:0 0 8px;font-size:clamp(23px,6vw,32px);font-weight:800;letter-spacing:2px;
+    background:linear-gradient(90deg,var(--sky-blue),var(--magenta));
+    -webkit-background-clip:text;background-clip:text;color:transparent;}
+  header p{margin:0;font-size:clamp(13px,3.4vw,15px);color:var(--ink-soft);line-height:1.7;}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 0;}
+
+  /* 三张卡片 */
+  .days{display:grid;gap:20px;grid-template-columns:1fr;}
+  @media(min-width:900px){ .days{grid-template-columns:repeat(3,1fr);gap:18px;} }
+
+  .day{background:var(--panel);border-radius:22px;overflow:hidden;
+    box-shadow:0 12px 34px rgba(120,80,140,.18);display:flex;flex-direction:column;}
+  .day-head{padding:18px 18px 14px;border-bottom:1px solid rgba(0,0,0,.06);}
+  .day-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:1.5px;
+    padding:4px 12px;border-radius:20px;margin-bottom:9px;color:#fff;}
+  .d1 .day-tag{background:linear-gradient(135deg,#9aa8c7,#7d8db0);}
+  .d2 .day-tag{background:linear-gradient(135deg,var(--magenta),var(--sky-blue));}
+  .d3 .day-tag{background:linear-gradient(135deg,var(--sakura-deep),var(--sakura));}
+  .day-head h2{margin:0 0 6px;font-size:19px;font-weight:800;}
+  .day-head .sub{font-size:13px;color:var(--ink-soft);line-height:1.65;}
+
+  .feats{list-style:none;margin:0;padding:14px 18px;flex:1;}
+  .feats li{font-size:13.5px;line-height:1.6;padding:7px 0 7px 25px;position:relative;color:#4a4560;}
+  .feats li::before{position:absolute;left:0;top:7px;font-size:14px;}
+  .feats li.yes::before{content:"✅";}
+  .feats li.no::before{content:"⛔";}
+  .feats li.no{color:#9a95a8;}
+  .feats li b{color:var(--magenta);font-weight:700;}
+
+  .day-foot{padding:0 18px 18px;}
+  .btn{display:block;text-align:center;text-decoration:none;border:none;cursor:pointer;
+    padding:13px 18px;border-radius:26px;font-size:15px;font-weight:700;letter-spacing:.5px;
+    background:linear-gradient(135deg,var(--magenta),var(--sky-blue));color:#fff;
+    box-shadow:0 7px 20px rgba(249,0,146,.3);transition:transform .15s;}
+  .btn:active{transform:scale(.96);}
+  .btn.ghost{background:#f2f5f9;color:var(--magenta);box-shadow:none;margin-top:8px;font-size:13.5px;padding:10px;}
+
+  /* 时间轴 */
+  .tl{background:var(--panel);border-radius:22px;padding:20px 18px;margin-top:22px;
+    box-shadow:0 12px 34px rgba(120,80,140,.18);}
+  .tl h3{margin:0 0 6px;font-size:17px;color:var(--magenta);text-align:center;}
+  .tl .note{text-align:center;font-size:12.5px;color:var(--ink-soft);margin:0 0 18px;line-height:1.6;}
+  .tl-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;}
+  .tl-item{flex:none;width:118px;text-align:center;}
+  .tl-time{font-size:12px;font-weight:800;color:var(--magenta);margin-bottom:6px;}
+  .tl-box{background:#f5fafd;border:1.5px solid #d9ecf6;border-radius:12px;padding:11px 8px;min-height:76px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;}
+  .tl-envs{font-size:16px;line-height:1.25;letter-spacing:1px;word-break:break-all;}
+  .tl-cnt{font-size:11px;color:var(--ink-soft);}
+
+  .foot{text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:26px;line-height:1.9;padding:0 18px;}
+  .foot code{background:rgba(255,255,255,.7);padding:2px 7px;border-radius:6px;font-size:12px;}
+</style>
+</head>
+<body>
+  <header>
+    <h1>洋灵许愿树</h1>
+    <p>三天效果预览 · 点开任一天就能看到当天真实的样子</p>
+  </header>
+
+  <div class="wrap">
+    <div class="days">
+
+      <!-- 823 -->
+      <div class="day d1">
+        <div class="day-head">
+          <span class="day-tag">8 月 23 日及之前</span>
+          <h2>预告期</h2>
+          <div class="sub">吊胃口 + 玩游戏认识创作者</div>
+        </div>
+        <ul class="feats">
+          <li class="yes">48 个信封<b>全部显示</b>，都是未拆封状态</li>
+          <li class="yes">点开只看到<b>预告</b>：一句文案 + 打码模糊的预告图</li>
+          <li class="yes"><b>连连看</b>：把物料连到对应的作者</li>
+          <li class="no">看不到任何完整内容</li>
+          <li class="no">没有樱花飘落</li>
+        </ul>
+        <div class="day-foot">
+          <a class="btn" href="./index.html?demo=1&amp;phase=teaser">看 823 的样子</a>
+          <a class="btn ghost" href="./index.html?demo=1&amp;phase=teaser&amp;sakura=1">加上樱花效果</a>
+        </div>
+      </div>
+
+      <!-- 824 -->
+      <div class="day d2">
+        <div class="day-head">
+          <span class="day-tag">8 月 24 日 · 正日</span>
+          <h2>开信日</h2>
+          <div class="sub">每半小时，一封信挂上树</div>
+        </div>
+        <ul class="feats">
+          <li class="yes"><b>只挂已开启的信</b>，预告信封不出现</li>
+          <li class="yes">00:00 一封 → 00:30 两封 → …… → 23:30 满 48 封</li>
+          <li class="yes">点开是<b>完整内容</b>：文字 / 影片 / 图片 / 链接 + 作者署名</li>
+          <li class="yes"><b>樱花整天飘落</b></li>
+          <li class="no">没有连连看（当天专心看信）</li>
+        </ul>
+        <div class="day-foot">
+          <a class="btn" href="./index.html?demo=1&amp;phase=reveal&amp;slot=0">看 00:00 第一封刚开</a>
+          <a class="btn ghost" href="./index.html?demo=1&amp;phase=reveal&amp;slot=17">看中午（18 封）</a>
+          <a class="btn ghost" href="./index.html?demo=1&amp;phase=reveal&amp;slot=47">看深夜（48 封全开）</a>
+        </div>
+      </div>
+
+      <!-- 825 -->
+      <div class="day d3">
+        <div class="day-head">
+          <span class="day-tag">8 月 25 日及之后</span>
+          <h2>回顾期</h2>
+          <div class="sub">全部保留，随时回来重看</div>
+        </div>
+        <ul class="feats">
+          <li class="yes">48 封信<b>全部开启</b>，永久保留</li>
+          <li class="yes">任何一封都能点开看完整内容</li>
+          <li class="yes">樱花飘落</li>
+          <li class="no">没有连连看</li>
+          <li class="no">没有预告信封</li>
+        </ul>
+        <div class="day-foot">
+          <a class="btn" href="./index.html?demo=1&amp;phase=archive">看 825 的样子</a>
+          <a class="btn ghost" href="./index.html?demo=1&amp;phase=archive&amp;sakura=1">加上樱花效果</a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 824 时间轴 -->
+    <div class="tl">
+      <h3>824 当天 · 信封怎么一封一封长出来</h3>
+      <p class="note">每半小时自动多一封，粉丝不用刷新页面</p>
+      <div class="tl-row" id="tl-row"></div>
+    </div>
+
+    <p class="foot">
+      以上是<b>演示数据</b>，用来看版面和流程；正式内容由后台填。<br>
+      正式上线后网页会<b>按当天日期自动切换</b>，不需要手动操作。<br>
+      <code>?demo=1</code> 只是预览用的参数，粉丝看到的网址不带这些。
+    </p>
+  </div>
+
+  <script>
+    // 824 时间轴：挑几个时间点，画出信封逐渐变多的样子
+    const POINTS = [
+      { slot:0,  label:"00:00" },
+      { slot:1,  label:"00:30" },
+      { slot:3,  label:"01:30" },
+      { slot:11, label:"05:30" },
+      { slot:23, label:"11:30" },
+      { slot:35, label:"17:30" },
+      { slot:47, label:"23:30" }
+    ];
+    document.getElementById("tl-row").innerHTML = POINTS.map(p=>{
+      const n = p.slot + 1;
+      const shown = Math.min(n, 12);
+      const envs  = "✉️".repeat(shown) + (n > shown ? "…" : "");
+      return `<div class="tl-item">
+        <div class="tl-time">${p.label}</div>
+        <div class="tl-box">
+          <div class="tl-envs">${envs}</div>
+          <div class="tl-cnt">${n} 封</div>
+        </div>
+      </div>`;
+    }).join("");
+  </script>
+</body>
+</html>

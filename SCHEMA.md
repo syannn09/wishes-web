@@ -72,14 +72,16 @@ create index if not exists letters_slot_idx on letters(slot);
 | 2 | 01:00 | ... | ... |
 | ... | ... | 47 | 23:30 |
 
-## 3. 解锁规则
+## 3. 解锁规则（三个阶段，中国时间）
 
-**824 当天（中国时间）**：`slot <= 当前已过的半小时数` 的信 = 已解锁。
-- 00:00 → slot 0 解锁，其余 47 封只有预告
-- 00:30 → slot 0、1 解锁，其余 46 封只有预告
-- 23:30 → 48 封全解锁
+| 日期 | `max_slot` | 效果 |
+|---|---|---|
+| **823 及之前** | `-1` | 一封都不解锁，48 封全是预告 |
+| **824** | `小时×2 + (分钟≥30?1:0)` | 00:00 开第 1 封、00:30 开第 2 封 …… 23:30 全开 |
+| **825 及之后** | `47` | 48 封全开，永久保留 |
 
-**非 824**：全部未解锁，只显示预告。
+> ⚠️ 这一段要和前端 `app.js` 的 `currentPhase()` 保持一致。
+> 前端控制「显示什么」，服务端控制「下发什么」，两边都要对。
 
 **管理员预览**：`?preview=<管理密钥>` 可无视时间全部解锁（见 README）。
 
@@ -102,15 +104,23 @@ security definer
 as $$
 declare
   cn        timestamp := (now() at time zone 'Asia/Shanghai');
-  is_824    boolean;
+  m         int;
+  d         int;
   max_slot  int;
 begin
-  is_824 := (extract(month from cn) = 8 and extract(day from cn) = 24);
-  -- 非 824 当天：一封都不解锁
-  max_slot := case when is_824
-                then (extract(hour from cn)::int * 2
-                      + case when extract(minute from cn) >= 30 then 1 else 0 end)
-                else -1 end;
+  m := extract(month from cn)::int;
+  d := extract(day   from cn)::int;
+
+  -- 三个阶段：
+  --   823 及之前 → -1（一封都不解锁，只有预告）
+  --   824        → 按半小时递增
+  --   825 及之后 → 47（48 封全开）
+  max_slot := case
+    when m = 8 and d = 24 then (extract(hour from cn)::int * 2
+                                + case when extract(minute from cn) >= 30 then 1 else 0 end)
+    when m > 8 or (m = 8 and d >= 25) then 47
+    else -1
+  end;
 
   return query
   select
