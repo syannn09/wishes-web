@@ -1,0 +1,295 @@
+# 数据库结构变更说明（洋灵许愿树 v2）
+
+> 本文档只描述**需要在 Supabase 后台执行的结构变更**，不含迁移文件。
+> 请在 Supabase → SQL Editor 手动执行下方 SQL。
+
+## 变更总览
+
+| 动作 | 对象 | 说明 |
+|---|---|---|
+| 保留 | `letters` | 增加 4 个字段：预告内容、视频、解锁槽位 |
+| 新增 | `authors` | 作者（物料创作者），连连看的右侧卡片 |
+| 停用 | `messages` | 粉丝留言功能已砍掉，表保留不删（历史数据），前端不再读写 |
+
+`messages` 表**不要删除** —— 824 之前的留言是客户资产。前端已移除所有读写，表留着即可。
+
+---
+
+## 1. 新增 `authors` 表
+
+作者与物料是 **1 对多**：一个作者可以有多个物料作品，一个物料只属于一个作者。
+
+```sql
+create table if not exists authors (
+  id          bigserial primary key,
+  name        text not null,              -- 作者名 / ID
+  avatar      text default '',            -- 头像图片网址，空则用首字母圆牌
+  bio         text default '',            -- 一句话介绍（连对后显示）
+  sort_order  int  default 0,
+  created_at  timestamptz default now()
+);
+
+alter table authors enable row level security;
+
+-- 粉丝端只读
+create policy "authors_public_read" on authors
+  for select using (true);
+```
+
+## 2. `letters` 表增加字段
+
+```sql
+alter table letters add column if not exists author_id     bigint references authors(id) on delete set null;
+alter table letters add column if not exists teaser_text   text default '';   -- 预告文字（未解锁时显示）
+alter table letters add column if not exists teaser_image  text default '';   -- 预告图（前端会打码模糊）
+alter table letters add column if not exists video         text default '';   -- 视频网址（mp4 直链 或 YouTube/Bilibili 嵌入链接）
+alter table letters add column if not exists slot          int default 0;     -- 解锁槽位 0..47，对应 00:00 ~ 23:30
+
+create index if not exists letters_slot_idx on letters(slot);
+```
+
+### 字段语义
+
+| 字段 | 未解锁时 | 已解锁时 |
+|---|---|---|
+| `teaser_text` | ✅ 显示 | 不显示 |
+| `teaser_image` | ✅ 显示（CSS 模糊处理） | 不显示 |
+| `title` | ✅ 显示 | ✅ 显示 |
+| `body` / `image` / `video` / `link` | ❌ 不下发 | ✅ 显示 |
+| `author_id` | ❌ 不下发 | ✅ 用于连连看 |
+
+> **重要**：未解锁的完整内容**不会下发到前端**（见第 4 节的 RPC），
+> 所以粉丝无法用开发者工具提前偷看。
+
+### `slot` 与时间的对应
+
+`slot = 小时 × 2 + (分钟 >= 30 ? 1 : 0)`，中国时区。
+
+| slot | 时间 | slot | 时间 |
+|---|---|---|---|
+| 0 | 00:00 | 24 | 12:00 |
+| 1 | 00:30 | 25 | 12:30 |
+| 2 | 01:00 | ... | ... |
+| ... | ... | 47 | 23:30 |
+
+## 3. 解锁规则
+
+**824 当天（中国时间）**：`slot <= 当前已过的半小时数` 的信 = 已解锁。
+- 00:00 → slot 0 解锁，其余 47 封只有预告
+- 00:30 → slot 0、1 解锁，其余 46 封只有预告
+- 23:30 → 48 封全解锁
+
+**非 824**：全部未解锁，只显示预告。
+
+**管理员预览**：`?preview=<管理密钥>` 可无视时间全部解锁（见 README）。
+
+## 4. 服务端 RPC（关键：防止提前偷看）
+
+粉丝端**不再直接 select letters**，改走这个 RPC。
+服务端按中国时间判断解锁，未解锁的信只返回预告字段。
+
+```sql
+create or replace function public_get_letters()
+returns table (
+  id bigint, slot int, title text,
+  unlocked boolean,
+  teaser_text text, teaser_image text,
+  body text, image text, video text, link text, link_text text,
+  author_id bigint, author_name text, author_avatar text, author_bio text
+)
+language plpgsql
+security definer
+as $$
+declare
+  cn        timestamp := (now() at time zone 'Asia/Shanghai');
+  is_824    boolean;
+  max_slot  int;
+begin
+  is_824 := (extract(month from cn) = 8 and extract(day from cn) = 24);
+  -- 非 824 当天：一封都不解锁
+  max_slot := case when is_824
+                then (extract(hour from cn)::int * 2
+                      + case when extract(minute from cn) >= 30 then 1 else 0 end)
+                else -1 end;
+
+  return query
+  select
+    L.id, L.slot, L.title,
+    (L.slot <= max_slot)                                   as unlocked,
+    L.teaser_text, L.teaser_image,
+    case when L.slot <= max_slot then L.body      else '' end,
+    case when L.slot <= max_slot then L.image     else '' end,
+    case when L.slot <= max_slot then L.video     else '' end,
+    case when L.slot <= max_slot then L.link      else '' end,
+    case when L.slot <= max_slot then L.link_text else '' end,
+    case when L.slot <= max_slot then L.author_id else null end,
+    case when L.slot <= max_slot then A.name      else '' end,
+    case when L.slot <= max_slot then A.avatar    else '' end,
+    case when L.slot <= max_slot then A.bio       else '' end
+  from letters L
+  left join authors A on A.id = L.author_id
+  where L.is_live = true
+  order by L.slot asc;
+end;
+$$;
+
+grant execute on function public_get_letters() to anon;
+```
+
+### 管理员预览版（带密钥，全解锁）
+
+```sql
+create or replace function preview_get_letters(p_key text)
+returns table (
+  id bigint, slot int, title text,
+  unlocked boolean,
+  teaser_text text, teaser_image text,
+  body text, image text, video text, link text, link_text text,
+  author_id bigint, author_name text, author_avatar text, author_bio text
+)
+language plpgsql
+security definer
+as $$
+begin
+  if p_key is distinct from current_setting('app.admin_key', true) then
+    raise exception 'bad key';
+  end if;
+
+  return query
+  select L.id, L.slot, L.title, true,
+         L.teaser_text, L.teaser_image,
+         L.body, L.image, L.video, L.link, L.link_text,
+         L.author_id, A.name, A.avatar, A.bio
+  from letters L
+  left join authors A on A.id = L.author_id
+  where L.is_live = true
+  order by L.slot asc;
+end;
+$$;
+
+grant execute on function preview_get_letters(text) to anon;
+```
+
+> `app.admin_key` 沿用现有 admin RPC 的密钥设置方式。
+> 若现有 `admin_list_letters` 用的是别的校验方式，请把上面的 `if` 改成一致的写法。
+
+## 5. 作者管理 RPC（后台用）
+
+沿用现有 `admin_*` 系列的密钥校验风格：
+
+```sql
+create or replace function admin_list_authors(p_key text)
+returns setof authors
+language plpgsql security definer as $$
+begin
+  if p_key is distinct from current_setting('app.admin_key', true) then
+    raise exception 'bad key';
+  end if;
+  return query select * from authors order by sort_order asc, id asc;
+end; $$;
+
+create or replace function admin_add_author(p_key text)
+returns bigint
+language plpgsql security definer as $$
+declare new_id bigint;
+begin
+  if p_key is distinct from current_setting('app.admin_key', true) then
+    raise exception 'bad key';
+  end if;
+  insert into authors(name) values('新作者') returning id into new_id;
+  return new_id;
+end; $$;
+
+create or replace function admin_update_author(
+  p_key text, p_id bigint, p_name text, p_avatar text, p_bio text, p_sort int)
+returns void
+language plpgsql security definer as $$
+begin
+  if p_key is distinct from current_setting('app.admin_key', true) then
+    raise exception 'bad key';
+  end if;
+  update authors set name=p_name, avatar=p_avatar, bio=p_bio, sort_order=p_sort
+  where id=p_id;
+end; $$;
+
+create or replace function admin_delete_author(p_key text, p_id bigint)
+returns void
+language plpgsql security definer as $$
+begin
+  if p_key is distinct from current_setting('app.admin_key', true) then
+    raise exception 'bad key';
+  end if;
+  delete from authors where id=p_id;
+end; $$;
+
+grant execute on function admin_list_authors(text)  to anon;
+grant execute on function admin_add_author(text)    to anon;
+grant execute on function admin_update_author(text,bigint,text,text,text,int) to anon;
+grant execute on function admin_delete_author(text,bigint) to anon;
+```
+
+## 6. 现有 `admin_update_letter` 需要扩参
+
+现有签名缺少新字段，需要重建（注意：改签名要先 drop）：
+
+```sql
+drop function if exists admin_update_letter(text,bigint,text,text,text,text,text,boolean,int);
+
+create or replace function admin_update_letter(
+  p_key text, p_id bigint,
+  p_title text, p_body text, p_image text, p_video text,
+  p_link text, p_link_text text,
+  p_teaser_text text, p_teaser_image text,
+  p_author_id bigint, p_slot int,
+  p_is_live boolean, p_sort int)
+returns void
+language plpgsql security definer as $$
+begin
+  if p_key is distinct from current_setting('app.admin_key', true) then
+    raise exception 'bad key';
+  end if;
+  update letters set
+    title=p_title, body=p_body, image=p_image, video=p_video,
+    link=p_link, link_text=p_link_text,
+    teaser_text=p_teaser_text, teaser_image=p_teaser_image,
+    author_id=p_author_id, slot=p_slot,
+    is_live=p_is_live, sort_order=p_sort
+  where id=p_id;
+end; $$;
+
+grant execute on function admin_update_letter(text,bigint,text,text,text,text,text,text,text,text,bigint,int,boolean,int) to anon;
+```
+
+## 7. 一次性初始化 48 个槽位
+
+后台「初始化 48 封」按钮会调用这个 RPC（只补缺，不动已有的信）：
+
+```sql
+create or replace function admin_init_slots(p_key text)
+returns void
+language plpgsql security definer as $$
+begin
+  if p_key is distinct from current_setting('app.admin_key', true) then
+    raise exception 'bad key';
+  end if;
+
+  insert into letters (title, slot, sort_order, is_live, teaser_text)
+  select
+    lpad((i/2)::text, 2, '0') || ':' || case when i%2=0 then '00' else '30' end
+      || ' · 第' || (i+1) || '封',
+    i, i, false, '还没到时候…'
+  from generate_series(0, 47) as i
+  where not exists (select 1 from letters where slot = i);
+end; $$;
+
+grant execute on function admin_init_slots(text) to anon;
+```
+
+## 8. `messages` 表：停用但保留
+
+粉丝留言功能已移除，前端不再读写 `messages`。
+表**不要删**（历史留言是客户资产）。若想彻底关闭写入：
+
+```sql
+drop policy if exists "messages_public_insert" on messages;
+```
