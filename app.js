@@ -256,8 +256,9 @@ function openLetter(L){
 const GAME = { items:[], authors:[], matched:new Set(), drag:null, picked:null, suppressClick:false };
 
 function buildGameData(){
-  // 只用已解锁、且绑定了作者的信
-  const pool = LETTERS.filter(L => L.unlocked && L.author_id);
+  // 连连看只在 823 预告期出现，那时一封都还没解锁，
+  // 所以这里不看解锁状态，只要绑了作者就能玩（作者本身不是秘密）
+  const pool = LETTERS.filter(L => L.author_id);
   // 每位作者最多取 3 个物料，避免一位作者刷屏
   const perAuthor = {};
   const items = [];
@@ -606,6 +607,10 @@ function startFireworks(){
 ========================================================= */
 applyPhase();
 loadLetters();
+// #play：直接打开连连看（demo.html 的「直接玩连连看」按钮用）
+if(location.hash === "#play" && currentPhase() === "teaser"){
+  setTimeout(()=>{ if(LETTERS.length) $("#btn-match").click(); }, 400);
+}
 setInterval(loadLetters, 30000);      // 每 30 秒刷新解锁状态 / 新上线的信
 
 updateCountdown();

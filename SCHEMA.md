@@ -132,10 +132,9 @@ begin
     case when L.slot <= max_slot then L.video     else '' end,
     case when L.slot <= max_slot then L.link      else '' end,
     case when L.slot <= max_slot then L.link_text else '' end,
-    case when L.slot <= max_slot then L.author_id else null end,
-    case when L.slot <= max_slot then A.name      else '' end,
-    case when L.slot <= max_slot then A.avatar    else '' end,
-    case when L.slot <= max_slot then A.bio       else '' end
+    -- 作者信息「永远下发」：823 的连连看要靠它配对，
+    -- 而且作者是谁本来就不是秘密；真正保密的是上面的正文/影片/图片。
+    L.author_id, coalesce(A.name,''), coalesce(A.avatar,''), coalesce(A.bio,'')
   from letters L
   left join authors A on A.id = L.author_id
   where L.is_live = true
