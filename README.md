@@ -81,7 +81,6 @@ https://www.yanglingforever.space/demo.html
 | `index.html?phase=teaser` | 强制看 **823 预告期**的样子 |
 | `index.html?phase=reveal` | 强制看 **824 当天**的样子 |
 | `index.html?phase=archive` | 强制看 **825 之后**的样子 |
-| `index.html?sakura=1` | **樱花飘落效果预览**（不用等 824） |
 | `index.html?demo=1` | 演示模式，用假数据，不连后台 |
 | `index.html?demo=1&phase=reveal&slot=0` | 演示 824 **第一封刚开**的样子 |
 | `index.html?demo=1&phase=reveal&slot=17` | 演示 824 中途（18 封已开） |

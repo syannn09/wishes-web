@@ -82,6 +82,9 @@
   /* 信封少的时候（824 刚开始）居中挂着，别孤零零缩在左上角 */
   body[data-phase="reveal"] #board{display:flex;align-items:center;justify-content:center;}
   body[data-phase="reveal"] #grid{margin:auto;}
+  /* 没有底部按钮的阶段，下方留白收窄 */
+  body[data-phase="reveal"] #board,
+  body[data-phase="archive"] #board{padding-bottom:calc(28px + env(safe-area-inset-bottom));}
 
   .env{position:relative;aspect-ratio:4/3;border:none;padding:0;cursor:pointer;
     background:none;display:block;transition:transform .18s ease;}
@@ -110,6 +113,9 @@
   #actions{position:fixed;bottom:0;left:0;right:0;z-index:8;display:flex;gap:10px;justify-content:center;
     padding:12px 14px calc(16px + env(safe-area-inset-bottom));
     background:linear-gradient(180deg,rgba(255,245,250,0),rgba(255,240,248,.75));}
+  /* 824 / 825 没有任何按钮时，别留一条空白遮罩 */
+  body[data-phase="reveal"] #actions,
+  body[data-phase="archive"] #actions{display:none;}
   .btn{border:none;border-radius:30px;padding:13px 24px;font-size:clamp(14px,4vw,16px);font-weight:700;
     cursor:pointer;box-shadow:0 8px 22px rgba(232,116,159,.4);transition:transform .15s;letter-spacing:1px;}
   .btn:active{transform:scale(.95);}
@@ -266,7 +272,6 @@
 
   <div id="actions">
     <button class="btn btn-primary" id="btn-match">🔗 牵红线</button>
-    <button class="btn btn-ghost" id="btn-sakura">🌸 樱花</button>
   </div>
 
   <!-- 信件弹窗 -->

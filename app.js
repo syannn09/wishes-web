@@ -12,7 +12,6 @@ const CHINA_OFFSET = 8*60;
 /* ---------- URL 参数 ---------- */
 const QS = new URLSearchParams(location.search);
 const PREVIEW_KEY  = QS.get("preview") || "";           // ?preview=<管理密钥> → 全解锁
-const FORCE_SAKURA = QS.has("sakura") || QS.has("test"); // ?sakura=1 → 强制樱花雨
 const DEMO         = QS.has("demo");                     // ?demo=1  → 用本地假数据，不连后台
 // ?slot=N 假装现在是第 N 个时段（只在 demo 下生效，用来测解锁效果）
 const FAKE_SLOT    = QS.has("slot") ? Math.max(-1, Math.min(47, parseInt(QS.get("slot")))) : null;
@@ -89,10 +88,6 @@ function startSakura(){
   if(sakuraTimer) return;
   sakuraTimer = setInterval(spawnPetal, 420);
   for(let i=0;i<14;i++) setTimeout(spawnPetal, i*200);
-}
-function stopSakura(){
-  if(!sakuraTimer) return;
-  clearInterval(sakuraTimer); sakuraTimer = null;
 }
 
 /* =========================================================
@@ -426,10 +421,6 @@ $("#btn-match").onclick = ()=>{
 };
 $("#game-restart").onclick = ()=>{ buildGameData(); renderGame(); };
 
-$("#btn-sakura").onclick = ()=>{
-  if(sakuraTimer){ stopSakura(); toast("樱花已停 🌿"); }
-  else{ startSakura(); toast("樱花飘落中 🌸"); }
-};
 
 /* =========================================================
    阶段切换：控制牵红线按钮 / 副标题
@@ -520,6 +511,5 @@ setInterval(updateCountdown, 30000);
 // 跨日自动切换阶段（00:00 一过，页面自己变，不用粉丝刷新）
 setInterval(applyPhase, 30000);
 
-// 樱花：824 当天自动飘；?sakura=1 / ?test=1 强制开启（给客户预览）
-if(isAug24China() || FORCE_SAKURA || PREVIEW_KEY || DEMO) startSakura();
-setInterval(()=>{ if(isAug24China()) startSakura(); }, 60000);
+// 樱花：默认一直飘，不再需要按钮开关
+startSakura();
