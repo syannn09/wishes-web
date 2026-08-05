@@ -182,8 +182,10 @@
     letter-spacing:1px;}
 
   /* ---------- 牵红线 ---------- */
+  /* 高度贴合内容，最多 88vh —— 内容少时不会在下方留一大片空白 */
   #match-modal .modal-game{position:relative;background:var(--panel);border-radius:22px;
-    width:100%;max-width:760px;height:88vh;display:flex;flex-direction:column;
+    width:100%;max-width:760px;height:auto;max-height:88vh;min-height:300px;
+    display:flex;flex-direction:column;
     box-shadow:0 26px 60px rgba(60,40,80,.42);overflow:hidden;}
   .game-head{padding:14px 16px 10px;text-align:center;flex:none;border-bottom:1px solid rgba(0,0,0,.06);}
   .game-head h3{margin:0;font-size:17px;color:var(--magenta);}
@@ -191,38 +193,105 @@
   #game-score{font-size:12px;font-weight:700;color:var(--sky-blue);margin-top:4px;}
   .game-close{position:absolute;top:10px;right:12px;width:32px;height:32px;border:none;border-radius:50%;
     background:rgba(58,53,80,.1);color:var(--ink);font-size:19px;line-height:1;cursor:pointer;z-index:5;}
-  /* 分关消除式：每关 6 对，一屏放下不滚动，没有任何连线。
-     配对成功 → 两张卡化成樱花瓣飘走；配错 → 抖一下。 */
-  #game-area{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
-    display:flex;flex-direction:column;}
-  #game-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 12px 18px;flex:1;
-    align-content:start;}
-  .col{display:flex;flex-direction:column;gap:8px;min-width:0;}
-  .col-head{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--ink-soft);
-    text-align:center;padding:2px 0 4px;}
-  .node{position:relative;border-radius:13px;padding:10px 12px;cursor:pointer;user-select:none;min-width:0;
-    background:#fff;box-shadow:0 3px 10px rgba(120,80,140,.16);border:2px solid transparent;
-    font-size:13px;line-height:1.4;
-    transition:border-color .2s,transform .3s,opacity .3s,box-shadow .2s;}
-  .node:active{transform:scale(.96);}
-  .node.picked{border-color:var(--magenta);
-    box-shadow:0 0 0 4px rgba(249,0,146,.14),0 3px 10px rgba(120,80,140,.16);}
-  .node.shake{animation:nodeShake .4s;}
-  @keyframes nodeShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-  /* 配对成功：缩小淡出，占位保留避免版面跳动 */
-  .node.gone{transform:scale(.55);opacity:0;pointer-events:none;}
-  .node .nm{font-weight:700;color:var(--ink);overflow-wrap:anywhere;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .node .tag{display:inline-block;font-size:10px;font-weight:800;color:#fff;border-radius:8px;
-    padding:2px 8px;margin-bottom:5px;letter-spacing:1px;
-    background:var(--sky-blue);}
-  /* 作者卡：头像 + 名字 + 身份，横排紧凑 */
-  .node-author{display:flex;align-items:center;gap:9px;}
-  .node-author .av{width:34px;height:34px;border-radius:50%;flex:none;object-fit:cover;
-    background:linear-gradient(135deg,var(--sakura),var(--sky-blue));
-    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;}
-  .node-author .sub{font-size:11px;color:var(--ink-soft);overflow-wrap:anywhere;
+  /* ---------- 牵红线 · 挂牌场景 ----------
+     樱花枝上挂着作品短册，下方是作者名牌。
+     点短册 → 垂下红线头；点对作者 → 红线画过去打结，双双化樱花；
+     点错 → 红线绷断落下。 */
+  #game-area{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  #scene{position:relative;padding:8px 12px 18px;min-height:100%;max-width:640px;margin:0 auto;}
+  #string-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;overflow:visible;}
+
+  /* 樱花枝 + 挂绳 */
+  .branch-row{position:relative;padding-top:16px;margin-bottom:10px;}
+  .branch-svg{position:absolute;top:4px;left:-6px;right:-6px;width:calc(100% + 12px);height:14px;
+    pointer-events:none;}
+  .tags{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .tag-wrap{display:flex;flex-direction:column;align-items:center;min-width:0;
+    animation:tagSway 4.6s ease-in-out infinite alternate;transform-origin:50% -18px;}
+  .tag-wrap:nth-child(2){animation-delay:-1.6s;}
+  .tag-wrap:nth-child(3){animation-delay:-3.1s;}
+  @keyframes tagSway{from{transform:rotate(-1.2deg)}to{transform:rotate(1.2deg)}}
+  .tag-string{width:2px;height:20px;margin-top:-6px;border-radius:2px;
+    background:linear-gradient(#b09484,#d8c2b4);}
+  .tag-card{position:relative;width:100%;background:var(--paper);border-radius:10px;cursor:pointer;
+    user-select:none;overflow:visible;border:2px solid rgba(200,214,232,.6);
+    box-shadow:0 4px 10px rgba(120,80,140,.18);
+    transition:transform .2s,box-shadow .2s,border-color .2s;}
+  .tag-card:active{transform:scale(.96);}
+  .tag-band{background:var(--sky-blue);color:#fff;font-size:10px;font-weight:800;letter-spacing:2px;
+    text-align:center;padding:3px 4px;border-radius:7px 7px 0 0;}
+  .tag-title{padding:8px 7px 10px;font-size:12px;font-weight:700;line-height:1.45;color:var(--ink);
+    min-height:56px;display:flex;align-items:center;justify-content:center;text-align:center;
+    overflow-wrap:anywhere;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  /* 选中：短册抬起 + 垂下一截晃动的红线头 */
+  .tag-wrap.picked .tag-card{border-color:#e8404f;transform:translateY(-3px);
+    box-shadow:0 0 0 4px rgba(232,64,79,.14),0 8px 18px rgba(232,64,79,.22);}
+  .tag-wrap.picked .tag-card::after{content:"";position:absolute;left:50%;bottom:-22px;width:2px;height:22px;
+    background:#e8404f;border-radius:2px;transform-origin:top center;
+    animation:threadSway .9s ease-in-out infinite alternate;}
+  .tag-wrap.picked .tag-card::before{content:"";position:absolute;left:50%;bottom:-27px;width:6px;height:6px;
+    margin-left:-2px;border-radius:50%;background:#e8404f;
+    transform-origin:50% -22px;animation:threadSway .9s ease-in-out infinite alternate;}
+  @keyframes threadSway{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
+
+  /* 作者名牌 */
+  .ag-label{text-align:center;font-size:11px;letter-spacing:2px;color:var(--ink-soft);
+    margin:14px 0 10px;}
+  #author-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .plaque{background:#fff;border-radius:11px;padding:10px 7px;cursor:pointer;text-align:center;
+    user-select:none;min-width:0;border:2px solid rgba(200,214,232,.6);
+    box-shadow:0 3px 9px rgba(120,80,140,.14);
+    transition:transform .2s,box-shadow .2s,border-color .2s;}
+  .plaque:active{transform:scale(.96);}
+  .plaque .pname{font-weight:800;font-size:13px;color:var(--ink);overflow-wrap:anywhere;
     display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+  .plaque .pbio{font-size:10.5px;color:var(--ink-soft);margin-top:3px;
+    display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+  .plaque.picked{border-color:#e8404f;
+    box-shadow:0 0 0 4px rgba(232,64,79,.14),0 6px 14px rgba(232,64,79,.2);}
+
+  .shakeit{animation:nodeShake .4s;}
+  @keyframes nodeShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  /* 牵好的一对：红线一直连着，卡片安定下来（停止摇晃、柔和、不可再点） */
+  .tag-wrap.tied{animation:none;}
+  .tag-wrap.tied .tag-card,.plaque.tied{cursor:default;opacity:.88;
+    border-color:rgba(232,64,79,.45);box-shadow:0 2px 8px rgba(232,64,79,.14);}
+  .tag-wrap.tied .tag-band{background:#f0a3ab;}
+
+  /* 红线 */
+  .rstring{fill:none;stroke:#e8404f;stroke-width:2.5;stroke-linecap:round;
+    filter:drop-shadow(0 1px 2px rgba(232,64,79,.4));}
+  .rstring.falls{transition:transform .5s ease-in,opacity .5s;transform:translateY(20px);opacity:0;}
+  .rknot{transform-box:fill-box;transform-origin:center;animation:knotPop .35s cubic-bezier(.3,1.6,.5,1) both;}
+  @keyframes knotPop{from{transform:scale(0)}to{transform:scale(1)}}
+
+  /* ---------- 左右布局（?layout=lr）----------
+     左：作品挂牌系在一根竖枝上；右：作者名牌；红线水平牵。 */
+  .lr-scene{position:relative;padding-left:24px;}
+  .trunk-svg{position:absolute;left:3px;top:-6px;height:calc(100% + 12px);width:14px;pointer-events:none;}
+  .lr-rows{display:flex;flex-direction:column;gap:12px;}
+  .lr-row{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:center;}
+  .tag-wrap.lr{position:relative;display:block;transform-origin:-20px 50%;
+    animation:lrSway 5s ease-in-out infinite alternate;}
+  .lr-row:nth-child(2n)  .tag-wrap.lr{animation-delay:-1.7s;}
+  .lr-row:nth-child(3n)  .tag-wrap.lr{animation-delay:-3.2s;}
+  @keyframes lrSway{from{transform:rotate(-.7deg)}to{transform:rotate(.7deg)}}
+  /* 系在枝上的短绳 */
+  .tag-wrap.lr::before{content:"";position:absolute;left:-21px;top:50%;width:21px;height:2px;
+    border-radius:2px;background:linear-gradient(90deg,#b09484,#d8c2b4);}
+  .tag-wrap.lr .tag-title{min-height:44px;}
+  /* 左右布局选中：红线头从右侧探出去，指向作者那边 */
+  .tag-wrap.lr.picked .tag-card::after{left:auto;right:-22px;bottom:auto;top:50%;
+    width:22px;height:2px;transform-origin:left center;}
+  .tag-wrap.lr.picked .tag-card::before{left:auto;right:-27px;bottom:auto;top:calc(50% - 2px);
+    margin-left:0;transform-origin:-22px 50%;}
+
+  /* 关卡进度：一排小红结 */
+  #round-dots{display:flex;gap:6px;justify-content:center;margin-top:6px;}
+  .rdot{width:9px;height:9px;border-radius:50%;background:#eee3e6;transition:background .3s,box-shadow .3s;}
+  .rdot.done{background:#e8404f;box-shadow:0 0 6px rgba(232,64,79,.5);}
+  .rdot.now{background:#fff;border:2px solid #e8404f;}
   /* 配对成功飘出的花瓣 */
   .pburst{position:absolute;width:11px;height:11px;pointer-events:none;z-index:8;
     border-radius:80% 0 80% 0;animation:pburst .8s ease-out forwards;}
@@ -290,14 +359,12 @@
       <button class="game-close" data-close>×</button>
       <div class="game-head">
         <h3>作品 × 作者 牵红线</h3>
-        <p>点一个作品，再点它的作者，配对成功就化成樱花</p>
+        <p>点一个挂牌，再点它的作者，把红线牵起来</p>
         <div id="game-score"></div>
+        <div id="round-dots"></div>
       </div>
       <div id="game-area">
-        <div id="game-cols">
-          <div class="col col-items" id="col-items"></div>
-          <div class="col col-authors" id="col-authors"></div>
-        </div>
+        <div id="scene"></div>
         <div id="round-banner"><span></span></div>
         <div id="game-done">
           <div class="big">🌸</div>

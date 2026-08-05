@@ -17,6 +17,8 @@ const DEMO         = QS.has("demo");                     // ?demo=1  → 用本�
 const FAKE_SLOT    = QS.has("slot") ? Math.max(-1, Math.min(47, parseInt(QS.get("slot")))) : null;
 // ?phase=teaser|reveal|archive 强制某个阶段，给客户预览三天的样子
 const FORCE_PHASE  = ["teaser","reveal","archive"].includes(QS.get("phase")) ? QS.get("phase") : null;
+// 牵红线布局：默认左右（左作品右作者）；?layout=td 可切回上下布局
+const GAME_LAYOUT  = QS.get("layout") === "td" ? "td" : "lr";
 
 /* ---------- 时间工具 ---------- */
 function nowChina(){
@@ -252,7 +254,7 @@ function openLetter(L){
    错了抖一下。全程没有连线，一屏永远只有 12 张卡。
 ========================================================= */
 const PAIRS_PER_ROUND = 6;
-const GAME = { rounds:[], round:0, matchedInRound:0, picked:null };
+const GAME = { rounds:[], round:0, matchedInRound:0, picked:null, tied:[], lock:false };
 
 function shuffle(a){
   const r = a.slice();
@@ -282,112 +284,274 @@ function renderGame(){
   renderRound();
 }
 
+// 樱花枝：一条微弯的枝干 + 几簇花
+function branchSVG(){
+  return `<svg class="branch-svg" viewBox="0 0 100 14" preserveAspectRatio="none">
+    <path d="M-2 8 Q 20 4, 44 7 T 102 6" fill="none" stroke="#a5765c" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M-2 8 Q 20 4, 44 7 T 102 6" fill="none" stroke="#c79a80" stroke-width="1" stroke-linecap="round" opacity=".6"/>
+  </svg>
+  <span style="position:absolute;top:1px;left:12%;width:7px;height:7px;border-radius:50%;background:var(--sakura);opacity:.9"></span>
+  <span style="position:absolute;top:6px;left:36%;width:5px;height:5px;border-radius:50%;background:var(--sakura-deep);opacity:.75"></span>
+  <span style="position:absolute;top:0;left:62%;width:6px;height:6px;border-radius:50%;background:var(--sakura);opacity:.85"></span>
+  <span style="position:absolute;top:5px;left:86%;width:5px;height:5px;border-radius:50%;background:#fbd9e6;opacity:.9"></span>`;
+}
+
+// 左右布局用：一根竖着的樱花枝
+function trunkSVG(){
+  return `<svg class="trunk-svg" viewBox="0 0 14 100" preserveAspectRatio="none">
+    <path d="M7 -2 Q 3 26, 7 52 T 7 102" fill="none" stroke="#a5765c" stroke-width="3" stroke-linecap="round"/>
+    <path d="M7 -2 Q 3 26, 7 52 T 7 102" fill="none" stroke="#c79a80" stroke-width="1.1" stroke-linecap="round" opacity=".6"/>
+  </svg>
+  <span style="position:absolute;left:1px;top:9%;width:7px;height:7px;border-radius:50%;background:var(--sakura);opacity:.9"></span>
+  <span style="position:absolute;left:8px;top:30%;width:5px;height:5px;border-radius:50%;background:var(--sakura-deep);opacity:.75"></span>
+  <span style="position:absolute;left:0;top:53%;width:6px;height:6px;border-radius:50%;background:var(--sakura);opacity:.85"></span>
+  <span style="position:absolute;left:7px;top:76%;width:5px;height:5px;border-radius:50%;background:#fbd9e6;opacity:.9"></span>`;
+}
+
+function tagCardHTML(L){
+  return `<div class="tag-card">
+    ${L.tag ? `<div class="tag-band">${escapeHtml(L.tag)}</div>` : `<div class="tag-band">作品</div>`}
+    <div class="tag-title">${escapeHtml(L.title || "作品")}</div>
+  </div>`;
+}
+function plaqueHTML(L){
+  return `<div class="plaque" data-author="${L.author_id}">
+    <div class="pname">${escapeHtml(L.author_name)}</div>
+    ${L.author_bio ? `<div class="pbio">${escapeHtml(L.author_bio)}</div>` : ""}
+  </div>`;
+}
+
 function renderRound(){
-  const ci = $("#col-items"), ca = $("#col-authors");
+  const scene = $("#scene");
   const list = GAME.rounds[GAME.round] || [];
   GAME.matchedInRound = 0;
   GAME.picked = null;
+  GAME.lock = false;
+  GAME.tied = [];        // 本关已牵好的红线（换关时随场景一起清掉）
 
   if(!GAME.rounds.length || list.length < 2){
-    ci.innerHTML = `<div class="empty" style="color:var(--ink-soft);text-shadow:none">
+    scene.innerHTML = `<div class="empty" style="color:var(--ink-soft);text-shadow:none">
       作品还在准备中<br>晚点再来玩 🌸</div>`;
-    ca.innerHTML = "";
     $("#game-score").textContent = "";
+    $("#round-dots").innerHTML = "";
     return;
   }
 
-  // 左：作品（类型 chip + 作品名）；右：作者（头像 + 名字 + 身份）
-  // 两列各自打乱，顺序对不上才有得玩
-  ci.innerHTML = `<div class="col-head">作品</div>` + shuffle(list).map(L => `
-    <div class="node node-item" data-author="${L.author_id}">
-      ${L.tag ? `<span class="tag">${escapeHtml(L.tag)}</span>` : ""}
-      <div class="nm">${escapeHtml(L.title || "作品")}</div>
-    </div>`).join("");
+  const works   = shuffle(list);
+  const authors = shuffle(list);
 
-  ca.innerHTML = `<div class="col-head">作者</div>` + shuffle(list).map(L => `
-    <div class="node node-author" data-author="${L.author_id}">
-      ${L.author_avatar ? `<img class="av" src="${escapeHtml(L.author_avatar)}" alt="">`
-                        : `<div class="av">${escapeHtml(initial(L.author_name))}</div>`}
-      <div style="min-width:0">
-        <div class="nm">${escapeHtml(L.author_name)}</div>
-        ${L.author_bio ? `<div class="sub">${escapeHtml(L.author_bio)}</div>` : ""}
-      </div>
-    </div>`).join("");
+  if(GAME_LAYOUT === "lr"){
+    // 左：作品挂牌系在竖枝上；右：作者名牌。红线水平牵过去。
+    scene.innerHTML =
+      `<svg id="string-svg"></svg>
+       <div class="lr-scene">${trunkSVG()}
+         <div class="lr-rows">${works.map((L,i)=>`
+           <div class="lr-row">
+             <div class="tag-wrap lr" data-author="${L.author_id}">${tagCardHTML(L)}</div>
+             ${plaqueHTML(authors[i])}
+           </div>`).join("")}
+         </div>
+       </div>`;
+  }else{
+    // 上：作品短册挂在横枝上（每枝最多 3 个）；下：作者名牌
+    const rows = [];
+    for(let i = 0; i < works.length; i += 3) rows.push(works.slice(i, i+3));
+    scene.innerHTML =
+      `<svg id="string-svg"></svg>` +
+      rows.map(row => `
+        <div class="branch-row">${branchSVG()}
+          <div class="tags">${row.map(L => `
+            <div class="tag-wrap" data-author="${L.author_id}">
+              <div class="tag-string"></div>
+              ${tagCardHTML(L)}
+            </div>`).join("")}
+          </div>
+        </div>`).join("") +
+      `<div class="ag-label">—— 出自谁之手？——</div>
+       <div id="author-grid">${authors.map(plaqueHTML).join("")}</div>`;
+  }
 
   updateScore();
 
-  $$("#game-cols .node").forEach(node => {
-    node.addEventListener("click", ()=> onCardTap(node));
+  $$("#scene .tag-wrap, #scene .plaque").forEach(el => {
+    el.addEventListener("click", ()=> onCardTap(el));
   });
 }
 
 function updateScore(){
   $("#game-score").textContent =
     `第 ${GAME.round+1} / ${GAME.rounds.length} 关 · 本关 ${GAME.matchedInRound} / ${(GAME.rounds[GAME.round]||[]).length} 对`;
+  $("#round-dots").innerHTML = GAME.rounds.map((_,i)=>
+    `<span class="rdot ${i < GAME.round ? "done" : i === GAME.round ? "now" : ""}"></span>`).join("");
 }
 
-/* ---- 点选：两列都能先点，点另一列的卡就判定 ---- */
-function onCardTap(node){
-  if(node.classList.contains("gone")) return;
+/* ---- 点选：短册和名牌都能先点，点另一边就判定 ---- */
+function onCardTap(el){
+  if(GAME.lock) return;
+  if(el.classList.contains("tied")) return;   // 已经牵好的不再响应
 
-  if(GAME.picked === node){                       // 再点一次 = 取消
-    node.classList.remove("picked");
+  if(GAME.picked === el){                         // 再点一次 = 收回红线
+    el.classList.remove("picked");
     GAME.picked = null;
     return;
   }
-  if(!GAME.picked){                               // 第一张
-    GAME.picked = node;
-    node.classList.add("picked");
+  if(!GAME.picked){                               // 第一下
+    GAME.picked = el;
+    el.classList.add("picked");
     return;
   }
-  const a = GAME.picked, b = node;
-  const sameSide = a.classList.contains("node-item") === b.classList.contains("node-item");
-  if(sameSide){                                   // 同一列 → 换选
+  const a = GAME.picked, b = el;
+  const sameSide = a.classList.contains("tag-wrap") === b.classList.contains("tag-wrap");
+  if(sameSide){                                   // 同一边 → 换选
     a.classList.remove("picked");
     GAME.picked = b;
     b.classList.add("picked");
     return;
   }
-  // 一作品一作者 → 判定
   a.classList.remove("picked");
   GAME.picked = null;
-  if(a.dataset.author === b.dataset.author){
-    matchPair(a, b);
+  const tag    = a.classList.contains("tag-wrap") ? a : b;
+  const plaque = tag === a ? b : a;
+  if(tag.dataset.author === plaque.dataset.author){
+    tieString(tag, plaque);      // 牵对：红线打结
   }else{
-    a.classList.add("shake"); b.classList.add("shake");
-    setTimeout(()=>{ a.classList.remove("shake"); b.classList.remove("shake"); }, 420);
+    snapString(tag, plaque);     // 牵错：红线绷断
   }
 }
 
-/* ---- 配对成功：樱花瓣飘走，卡片淡出 ---- */
-function matchPair(a, b){
-  [a, b].forEach(el => { burstPetals(el); el.classList.add("gone"); });
-  GAME.matchedInRound++;
-  updateScore();
-
-  if(GAME.matchedInRound >= (GAME.rounds[GAME.round]||[]).length){
-    if(GAME.round + 1 < GAME.rounds.length){
-      showRoundBanner(`第 ${GAME.round+1} 关完成 🌸`);
-      setTimeout(()=>{ GAME.round++; renderRound(); }, 950);
-    }else{
-      setTimeout(()=>{ $("#game-done").classList.add("show"); startFireworks(); }, 500);
-    }
+/* ---- 红线几何 ----
+   上下布局：短册底部中点 → 名牌顶部中点
+   左右布局：挂牌右缘中点 → 名牌左缘中点（弧线往下坠，更像真的红线） */
+function scenePoint(el, edge){
+  const base = $("#scene").getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  if(edge === "left" || edge === "right"){
+    return { x: (edge === "right" ? r.right : r.left) - base.left,
+             y: r.top + r.height/2 - base.top };
   }
+  return { x: r.left + r.width/2 - base.left,
+           y: (edge === "bottom" ? r.bottom : r.top) - base.top };
+}
+function drawRedString(tag, plaque){
+  const svg = $("#string-svg");
+  let p1, p2, sag;
+  if(GAME_LAYOUT === "lr"){
+    p1 = scenePoint(tag.querySelector(".tag-card"), "right");
+    p2 = scenePoint(plaque, "left");
+    sag = Math.max(p1.y, p2.y) + 14 + Math.abs(p1.x - p2.x) * 0.10;
+  }else{
+    p1 = scenePoint(tag.querySelector(".tag-card"), "bottom");
+    p2 = scenePoint(plaque, "top");
+    sag = Math.max(p1.y, p2.y) + 26 + Math.abs(p1.x - p2.x) * 0.08;
+  }
+  const path = document.createElementNS(SVG_NS, "path");
+  path.setAttribute("d", `M${p1.x} ${p1.y} Q ${(p1.x+p2.x)/2} ${sag}, ${p2.x} ${p2.y}`);
+  path.setAttribute("class", "rstring");
+  svg.appendChild(path);
+  const len = path.getTotalLength();
+  path.style.strokeDasharray  = len;
+  path.style.strokeDashoffset = len;
+  path.style.transition = "stroke-dashoffset .38s ease-out";
+  requestAnimationFrame(()=>{ path.style.strokeDashoffset = "0"; });
+  return { svg, path, len };
+}
+
+// 在线中点打一个同心结。
+// 注意：外层 g 负责定位（attribute transform），内层 g 跑弹出动画 ——
+// CSS 动画的 transform 会覆盖同元素的 SVG transform 属性，必须分开两层
+function makeKnot(svg, path, len){
+  const mid = path.getPointAtLength(len/2);
+  const holder = document.createElementNS(SVG_NS, "g");
+  holder.setAttribute("class", "rknot-holder");
+  holder.setAttribute("transform", `translate(${mid.x},${mid.y})`);
+  holder.innerHTML = `<g class="rknot">
+    <ellipse cx="-4.5" cy="0" rx="4.5" ry="3" fill="none" stroke="#e8404f" stroke-width="2" transform="rotate(-24)"/>
+    <ellipse cx="4.5"  cy="0" rx="4.5" ry="3" fill="none" stroke="#e8404f" stroke-width="2" transform="rotate(24)"/>
+    <circle cx="0" cy="0" r="2.4" fill="#e8404f"/>
+  </g>`;
+  svg.appendChild(holder);
+  return holder;
+}
+
+/* ---- 牵对：画线 → 打结 → 红线留着，一直牵到换关 ---- */
+function tieString(tag, plaque){
+  GAME.lock = true;
+  const { svg, path, len } = drawRedString(tag, plaque);
+  const rec = { tag, plaque, path, holder:null };
+  GAME.tied.push(rec);
+
+  setTimeout(()=>{ rec.holder = makeKnot(svg, path, len); }, 400);
+
+  setTimeout(()=>{
+    burstPetals(tag); burstPetals(plaque);
+    // 牵好的一对安定下来：停止摇晃、变柔和、不再响应点击
+    tag.classList.add("tied"); plaque.classList.add("tied");
+    GAME.lock = false;
+    GAME.matchedInRound++;
+    updateScore();
+    if(GAME.matchedInRound >= (GAME.rounds[GAME.round]||[]).length){
+      if(GAME.round + 1 < GAME.rounds.length){
+        // 停一拍，让玩家看一眼整张牵好的红线网
+        setTimeout(()=> showRoundBanner(`第 ${GAME.round+1} 关 · 红线已牵好 🎀`), 500);
+        setTimeout(()=>{ GAME.round++; renderRound(); }, 1650);
+      }else{
+        setTimeout(()=>{ $("#game-done").classList.add("show"); startFireworks(); }, 900);
+      }
+    }
+  }, 900);
+}
+
+// 窗口尺寸变化时，把已牵好的红线按新位置重画
+function redrawTied(){
+  if(!GAME.tied.length) return;
+  GAME.tied.forEach(rec=>{
+    if(!rec.path.isConnected) return;
+    const lr = GAME_LAYOUT === "lr";
+    const p1 = lr ? scenePoint(rec.tag.querySelector(".tag-card"), "right")
+                  : scenePoint(rec.tag.querySelector(".tag-card"), "bottom");
+    const p2 = lr ? scenePoint(rec.plaque, "left") : scenePoint(rec.plaque, "top");
+    const sag = lr ? Math.max(p1.y,p2.y) + 14 + Math.abs(p1.x-p2.x)*0.10
+                   : Math.max(p1.y,p2.y) + 26 + Math.abs(p1.x-p2.x)*0.08;
+    rec.path.style.transition = "none";
+    rec.path.style.strokeDasharray = "none";
+    rec.path.setAttribute("d", `M${p1.x} ${p1.y} Q ${(p1.x+p2.x)/2} ${sag}, ${p2.x} ${p2.y}`);
+    if(rec.holder){
+      const len = rec.path.getTotalLength();
+      const mid = rec.path.getPointAtLength(len/2);
+      rec.holder.setAttribute("transform", `translate(${mid.x},${mid.y})`);
+    }
+  });
+}
+addEventListener("resize", redrawTied);
+
+/* ---- 牵错：线画到一半绷断落下 ---- */
+function snapString(tag, plaque){
+  GAME.lock = true;
+  const { path } = drawRedString(tag, plaque);
+  setTimeout(()=>{
+    path.classList.add("falls");                 // 整条线松脱下坠
+    tag.classList.add("shakeit"); plaque.classList.add("shakeit");
+  }, 320);
+  setTimeout(()=>{
+    path.remove();
+    tag.classList.remove("shakeit"); plaque.classList.remove("shakeit");
+    GAME.lock = false;
+  }, 850);
 }
 
 // 在卡片位置撒一把樱花瓣
 function burstPetals(el){
-  const area = $("#game-area");
-  const ar = area.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const scene = $("#scene");
+  const ar = scene.getBoundingClientRect(), r = el.getBoundingClientRect();
   for(let i = 0; i < 6; i++){
     const p = document.createElement("div");
     p.className = "pburst";
     p.style.left = (r.left - ar.left + r.width/2 + (Math.random()*30-15)) + "px";
-    p.style.top  = (r.top  - ar.top  + r.height/2 + (Math.random()*16-8) + area.scrollTop) + "px";
+    p.style.top  = (r.top  - ar.top  + r.height/2 + (Math.random()*16-8)) + "px";
     p.style.background = Math.random() > 0.5 ? "var(--sakura)" : "var(--sakura-deep)";
     p.style.setProperty("--dx", (Math.random()*90-45) + "px");
     p.style.setProperty("--dy", (-30 - Math.random()*60) + "px");
-    area.appendChild(p);
+    scene.appendChild(p);
     setTimeout(()=>p.remove(), 900);
   }
 }
@@ -396,7 +560,7 @@ function showRoundBanner(text){
   const b = $("#round-banner");
   b.querySelector("span").textContent = text;
   b.classList.add("show");
-  setTimeout(()=> b.classList.remove("show"), 900);
+  setTimeout(()=> b.classList.remove("show"), 950);
 }
 
 /* =========================================================
