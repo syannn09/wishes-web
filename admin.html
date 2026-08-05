@@ -14,17 +14,16 @@
   body{margin:0;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);
     min-height:100vh;padding:16px 12px 40px;position:relative;
     background:linear-gradient(160deg,#eaf6fb,#ffe6f4);}
-  /* 樱花树背景：和粉丝页同一张图，后台模糊得更重，不干扰填内容 */
   body::before{content:"";position:fixed;inset:0;z-index:-2;
     background-image:url("./assets/sakura-bg.jpg");
     background-size:cover;background-position:center bottom;background-repeat:no-repeat;
     filter:blur(6px) saturate(.95);transform:scale(1.06);}
   body::after{content:"";position:fixed;inset:0;z-index:-1;
-    background:linear-gradient(160deg,rgba(234,246,251,.82),rgba(255,230,244,.86));}
+    background:linear-gradient(160deg,rgba(234,246,251,.86),rgba(255,230,244,.9));}
   h1{font-size:20px;text-align:center;
     background:linear-gradient(90deg,var(--sky-blue),var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent;}
   .card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 6px 20px rgba(120,80,140,.12);
-    margin:0 auto 14px;max-width:660px;}
+    margin:0 auto 14px;max-width:1100px;}
   input,textarea,select{width:100%;border:1.5px solid #bfe6f3;border-radius:10px;padding:10px;
     font-size:15px;font-family:inherit;margin-bottom:10px;outline:none;background:#fff;}
   input:focus,textarea:focus,select:focus{border-color:var(--magenta);}
@@ -38,30 +37,69 @@
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   @media(max-width:520px){ .grid2{grid-template-columns:1fr;} }
-  .letter{border:1px solid #eee;border-radius:14px;padding:14px;margin-bottom:12px;}
-  .letter.live{border-color:var(--sky-blue);background:#f4fbff;}
-  .badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+  .badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
   .badge.on{background:#d7f5e3;color:#1a9d5a;}
   .badge.off{background:#f0eef2;color:#998;}
+  .badge.warn{background:#fff0e0;color:#c47b1a;}
   .muted{color:#998;font-size:12px;}
-  .switch{margin-left:auto;}
   #gate .card{max-width:380px;margin-top:12vh;text-align:center;}
-  .hidden{display:none;}
+  .hidden{display:none!important;}
   .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#3a3550;color:#fff;
-    padding:10px 18px;border-radius:20px;opacity:0;transition:.3s;z-index:50;font-size:14px;}
+    padding:10px 18px;border-radius:20px;opacity:0;transition:.3s;z-index:80;font-size:14px;
+    max-width:88vw;text-align:center;pointer-events:none;}
   .toast.show{opacity:1;}
   .thumb{max-width:100%;border-radius:8px;margin:6px 0;}
   .tabs{display:flex;gap:8px;justify-content:center;margin-bottom:14px;}
   .tab{border:none;border-radius:22px;padding:9px 22px;font-size:14px;font-weight:700;cursor:pointer;
     background:#fff;color:var(--ink);box-shadow:0 3px 10px rgba(120,80,140,.12);}
   .tab.on{background:var(--magenta);color:#fff;}
-  .author-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
-  .av{width:38px;height:38px;border-radius:50%;object-fit:cover;flex:none;
-    background:linear-gradient(135deg,var(--sakura),var(--sky-blue));
-    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;}
   .sec-title{font-size:13px;font-weight:700;color:var(--magenta);margin:14px 0 8px;
     padding-top:12px;border-top:1px dashed #e8dcc8;}
   .sec-title:first-child{border-top:none;padding-top:0;margin-top:0;}
+
+  /* ---------- 搜索列 ---------- */
+  .search{position:relative;margin-bottom:0;}
+  .search input{margin-bottom:0;padding-left:34px;}
+  .search::before{content:"🔍";position:absolute;left:11px;top:50%;transform:translateY(-50%);
+    font-size:13px;opacity:.5;pointer-events:none;}
+
+  /* ---------- 表格 ---------- */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:12px;}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px;}
+  thead th{text-align:left;font-size:11px;font-weight:800;color:#8a85a0;letter-spacing:.5px;
+    padding:8px 10px;border-bottom:2px solid #eef3f8;white-space:nowrap;background:#fff;
+    position:sticky;top:0;z-index:2;}
+  tbody td{padding:10px;border-bottom:1px solid #f2f5f9;vertical-align:middle;}
+  tbody tr{transition:background .15s;}
+  tbody tr:hover{background:#fafdff;}
+  tbody tr.live-row{background:#f7fcff;}
+  tbody tr.live-row:hover{background:#f0f9ff;}
+  .c-time{font-weight:800;color:var(--magenta);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .c-title{font-weight:700;min-width:150px;}
+  .c-title .sub{font-size:11px;color:#aaa;font-weight:400;margin-top:2px;}
+  .c-author{white-space:nowrap;}
+  .c-act{text-align:right;white-space:nowrap;}
+  .no-author{color:#c47b1a;font-size:12px;font-weight:700;}
+  .empty-row td{text-align:center;color:#998;padding:26px 10px;font-size:13px;}
+
+  /* 拖动手柄 */
+  .drag{cursor:grab;color:#c8cfda;font-size:17px;user-select:none;touch-action:none;
+    padding:2px 4px;line-height:1;}
+  .drag:active{cursor:grabbing;}
+  tr.dragging{opacity:.4;}
+  tr.drop-target td{box-shadow:inset 0 2px 0 var(--magenta);}
+
+  /* ---------- 弹窗编辑器 ---------- */
+  .modal-bg{position:fixed;inset:0;background:rgba(58,53,80,.5);backdrop-filter:blur(3px);
+    z-index:60;display:none;align-items:flex-start;justify-content:center;padding:20px 12px;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .modal-bg.show{display:flex;}
+  .modal{background:#fff;border-radius:18px;width:100%;max-width:620px;padding:20px;
+    box-shadow:0 24px 60px rgba(0,0,0,.3);margin:auto;}
+  .modal h3{margin:0 0 4px;font-size:18px;color:var(--magenta);}
+  .modal .mhead{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .modal .mhead .x{margin-left:auto;border:none;background:#f2f5f9;width:32px;height:32px;
+    border-radius:50%;font-size:19px;cursor:pointer;color:var(--ink);line-height:1;}
 
   /* ---------- 上传区 ---------- */
   .up{border:2px dashed #bfe6f3;border-radius:12px;padding:14px;text-align:center;margin-bottom:10px;
@@ -73,8 +111,7 @@
   .up .up-sub{font-size:11px;color:#aaa;margin-top:4px;}
   .up-bar{height:6px;border-radius:6px;background:#e8f2f8;overflow:hidden;margin-top:9px;display:none;}
   .up-bar.on{display:block;}
-  .up-bar i{display:block;height:100%;width:0;border-radius:6px;
-    background:linear-gradient(90deg,var(--magenta),var(--sky-blue));transition:width .25s;}
+  .up-bar i{display:block;height:100%;width:0;border-radius:6px;background:var(--magenta);transition:width .25s;}
   .up-done{display:flex;align-items:center;gap:9px;margin-bottom:10px;padding:9px 11px;
     background:#f4fbff;border:1px solid #bfe6f3;border-radius:11px;}
   .up-done .nm{font-size:12px;color:#5a7;word-break:break-all;flex:1;min-width:0;}
@@ -105,51 +142,150 @@
       <button class="tab"    data-tab="authors">👤 作者</button>
     </div>
 
-    <!-- 信件页 -->
+    <!-- ============ 信件 ============ -->
     <div id="tab-letters">
       <div class="card">
-        <div class="row">
-          <button class="btn" id="addBtn">＋ 新增一封信</button>
+        <div class="row" style="margin-bottom:12px;">
+          <button class="btn small" id="addBtn">＋ 新增一封信</button>
           <button class="btn ghost small" id="initBtn">初始化 48 封</button>
           <button class="btn ghost small" id="reloadBtn">刷新</button>
           <button class="btn ghost small" id="previewBtn">预览粉丝页</button>
-          <button class="btn ghost small" id="logoutBtn">退出</button>
+          <button class="btn ghost small" id="logoutBtn" style="margin-left:auto;">退出</button>
         </div>
+        <div class="search"><input id="q-letters" placeholder="搜索作品标题 或 作者名…" /></div>
         <p class="muted" style="margin:10px 0 0;">
-          「上线」的信才会出现在粉丝页。<strong>解锁时段</strong>决定 824 当天几点开启；
-          未到点粉丝只看得到<strong>预告</strong>，完整内容不会下发到前端。
+          拖动左边 <b>⠿</b> 可以调整<b>开启时间</b>顺序（第 1 行 = 00:00，第 2 行 = 00:30 …）。
+          点整行打开编辑。「上线」的信才会出现在粉丝页。
         </p>
+        <div id="letters-warn" class="muted" style="margin-top:8px;"></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:30px"></th>
+              <th style="width:64px">开启</th>
+              <th>作品标题</th>
+              <th style="width:130px">作者</th>
+              <th style="width:78px">状态</th>
+              <th style="width:120px"></th>
+            </tr></thead>
+            <tbody id="letters-body"></tbody>
+          </table>
+        </div>
       </div>
-      <div id="list"></div>
     </div>
 
-    <!-- 作者页 -->
+    <!-- ============ 作者 ============ -->
     <div id="tab-authors" class="hidden">
       <div class="card">
-        <div class="row">
-          <button class="btn" id="addAuthorBtn">＋ 新增作者</button>
+        <div class="row" style="margin-bottom:12px;">
+          <button class="btn small" id="addAuthorBtn">＋ 新增作者</button>
           <button class="btn ghost small" id="reloadAuthorBtn">刷新</button>
         </div>
+        <div class="search"><input id="q-authors" placeholder="搜索作者名…" /></div>
         <p class="muted" style="margin:10px 0 0;">
-          一位作者对应一个作品（一封信）。在信件页把每封信指定给对应的作者。
+          一位作者只能绑定<b>一个</b>作品。已绑定的作者不会出现在其他信的下拉选单里。
         </p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>作者名</th>
+              <th>介绍</th>
+              <th style="width:150px">已绑定作品</th>
+              <th style="width:120px"></th>
+            </tr></thead>
+            <tbody id="authors-body"></tbody>
+          </table>
+        </div>
       </div>
-      <div id="author-list"></div>
+    </div>
+  </div>
+
+  <!-- ============ 信件编辑弹窗 ============ -->
+  <div class="modal-bg" id="letter-modal">
+    <div class="modal">
+      <div class="mhead">
+        <h3 id="lm-title">编辑信件</h3>
+        <button class="x" data-close-modal>×</button>
+      </div>
+
+      <div class="sec-title">基本</div>
+      <label>作品标题</label>
+      <input class="f-title" placeholder="例如：主视觉 · 樱花树下的你们"/>
+      <div class="grid2">
+        <div>
+          <label>开启时间</label>
+          <select class="f-slot"></select>
+        </div>
+        <div>
+          <label>作者（一位作者只能绑一个作品）</label>
+          <select class="f-author"></select>
+        </div>
+      </div>
+      <label class="row" style="gap:7px;margin-bottom:12px;">
+        <input type="checkbox" class="f-live" style="width:auto;margin:0;"/>
+        <span style="font-size:14px;font-weight:700;color:var(--ink)">上线（粉丝页可见）</span>
+      </label>
+
+      <div class="sec-title">预告（未解锁时粉丝看到的）</div>
+      <label>预告文字</label>
+      <textarea class="f-teaser-text" placeholder="给一点悬念…"></textarea>
+      <label>预告图片（前端会自动打码模糊）</label>
+      <div id="lm-teaser-up"></div>
+
+      <div class="sec-title">完整内容（解锁后才下发）</div>
+      <label>文字内容</label>
+      <textarea class="f-body" placeholder="信的正文…"></textarea>
+      <label>影片网址（YouTube / Bilibili / mp4 直链）</label>
+      <input class="f-video" placeholder="https://..."/>
+      <label>图片</label>
+      <div id="lm-image-up"></div>
+      <label>链接</label>
+      <input class="f-link" placeholder="https://..."/>
+      <label>链接显示文字</label>
+      <input class="f-linktext" placeholder="点击查看"/>
+
+      <div class="row" style="margin-top:16px;">
+        <button class="btn" id="lm-save">保存</button>
+        <button class="btn ghost" data-close-modal>取消</button>
+        <button class="btn danger" id="lm-del" style="margin-left:auto;">删除这封</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 作者编辑弹窗 ============ -->
+  <div class="modal-bg" id="author-modal">
+    <div class="modal" style="max-width:460px;">
+      <div class="mhead">
+        <h3 id="am-title">编辑作者</h3>
+        <button class="x" data-close-modal>×</button>
+      </div>
+      <label>作者名</label>
+      <input class="a-name" placeholder="作者名 / ID"/>
+      <label>介绍（例如：画手 / 剪辑 / 写手）</label>
+      <input class="a-bio" placeholder="一句话介绍"/>
+      <div class="row" style="margin-top:16px;">
+        <button class="btn" id="am-save">保存</button>
+        <button class="btn ghost" data-close-modal>取消</button>
+        <button class="btn danger" id="am-del" style="margin-left:auto;">删除</button>
+      </div>
     </div>
   </div>
 
   <script src="./config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>
-  const $  = (s)=>document.querySelector(s);
-  const $$ = (s)=>Array.from(document.querySelectorAll(s));
+  const $  = (s,r)=>(r||document).querySelector(s);
+  const $$ = (s,r)=>Array.from((r||document).querySelectorAll(s));
   const sb = window.supabase.createClient(window.CONFIG.SUPABASE_URL, window.CONFIG.SUPABASE_ANON_KEY);
   let KEY = localStorage.getItem("yl_admin_key") || "";
-  let AUTHORS = [];
 
-  function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2200);}
+  let AUTHORS = [];     // 全部作者
+  let LETTERS = [];     // 全部信件（按 slot 排序）
+  let editingLetter = null;
+  let editingAuthor = null;
+
+  function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2400);}
   function esc(s){return (s||"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  function initial(n){return (n||"?").trim().charAt(0).toUpperCase();}
   function slotLabel(i){return `${String(Math.floor(i/2)).padStart(2,"0")}:${(i%2)===0?"00":"30"}`;}
 
   async function rpc(fn,args){
@@ -158,24 +294,28 @@
     return data;
   }
 
-  /* ---------- 登录 ---------- */
+  /* ================= 登录 ================= */
   async function enter(){
     try{
-      const [letters, authors] = await Promise.all([
-        rpc("admin_list_letters",{p_key:KEY}),
-        rpc("admin_list_authors",{p_key:KEY})
-      ]);
-      AUTHORS = authors || [];
+      await reloadAll();
       $("#gate").classList.add("hidden");
       $("#panel").classList.remove("hidden");
-      render(letters);
-      renderAuthors();
     }catch(e){
       console.warn(e);
       toast("密钥错误或连接失败");
       $("#gate").classList.remove("hidden");
       $("#panel").classList.add("hidden");
     }
+  }
+  async function reloadAll(){
+    const [letters, authors] = await Promise.all([
+      rpc("admin_list_letters",{p_key:KEY}),
+      rpc("admin_list_authors",{p_key:KEY})
+    ]);
+    AUTHORS = authors || [];
+    LETTERS = (letters || []).slice().sort((a,b)=>(a.slot||0)-(b.slot||0));
+    renderLetters();
+    renderAuthors();
   }
 
   $("#loginBtn").onclick=async ()=>{
@@ -187,7 +327,6 @@
   $("#logoutBtn").onclick=()=>{ localStorage.removeItem("yl_admin_key"); location.reload(); };
   $("#previewBtn").onclick=()=>{ window.open("./index.html?preview="+encodeURIComponent(KEY),"_blank"); };
 
-  /* ---------- 分页切换 ---------- */
   $$(".tab").forEach(t=> t.onclick=()=>{
     $$(".tab").forEach(x=>x.classList.remove("on"));
     t.classList.add("on");
@@ -195,32 +334,310 @@
     $("#tab-authors").classList.toggle("hidden", t.dataset.tab!=="authors");
   });
 
-  /* ---------- 信件 ---------- */
-  async function reloadLetters(){ render(await rpc("admin_list_letters",{p_key:KEY})); }
-  $("#reloadBtn").onclick=async ()=>{ try{ await reloadLetters(); toast("已刷新"); }catch(e){ toast("刷新失败"); } };
+  /* ================= 作者归属：1 作品 = 1 作者 ================= */
+  // 作者 id → 绑定的信件（没有则 undefined）
+  function authorOwner(authorId){
+    return LETTERS.find(L => String(L.author_id) === String(authorId));
+  }
+  // 某封信可以选的作者 = 尚未被别人绑走的 + 自己已选的那位
+  function availableAuthors(currentLetterId, currentAuthorId){
+    return AUTHORS.filter(A=>{
+      const owner = authorOwner(A.id);
+      return !owner || String(owner.id) === String(currentLetterId)
+                    || String(A.id) === String(currentAuthorId);
+    });
+  }
+
+  /* ================= 信件列表 ================= */
+  $("#q-letters").oninput = renderLetters;
+
+  function renderLetters(){
+    const q = ($("#q-letters").value || "").trim().toLowerCase();
+    const body = $("#letters-body");
+
+    // 提示：还有几封没绑作者
+    const noAuthor = LETTERS.filter(L=>!L.author_id).length;
+    const warn = $("#letters-warn");
+    if(!LETTERS.length){ warn.innerHTML=""; }
+    else if(noAuthor){
+      warn.innerHTML = `<span class="badge warn">⚠️ 还有 ${noAuthor} 封没绑作者</span>
+        <span class="muted"> 牵红线需要至少 2 组「作品 + 作者」才玩得起来</span>`;
+    }else{
+      warn.innerHTML = `<span class="badge on">✅ 全部已绑定作者</span>`;
+    }
+
+    const rows = LETTERS.filter(L=>{
+      if(!q) return true;
+      const a = AUTHORS.find(x=>String(x.id)===String(L.author_id));
+      return (L.title||"").toLowerCase().includes(q)
+          || (a ? (a.name||"").toLowerCase().includes(q) : false);
+    });
+
+    if(!rows.length){
+      body.innerHTML = `<tr class="empty-row"><td colspan="6">${
+        LETTERS.length ? "没有符合搜索的信件" : "还没有信，点上面「新增一封信」或「初始化 48 封」开始。"
+      }</td></tr>`;
+      return;
+    }
+
+    const dragOK = !q;   // 搜索状态下不给拖（顺序会误导）
+    body.innerHTML = rows.map(L=>{
+      const a = AUTHORS.find(x=>String(x.id)===String(L.author_id));
+      return `<tr data-id="${L.id}" class="${L.is_live?'live-row':''}">
+        <td>${dragOK?'<span class="drag" title="拖动调整开启时间">⠿</span>':''}</td>
+        <td class="c-time">${slotLabel(L.slot||0)}</td>
+        <td class="c-title">${esc(L.title)||'<span class="muted">（未命名）</span>'}
+          ${L.video||L.image ? `<div class="sub">${L.video?'🎬 影片 ':''}${L.image?'🖼 图片':''}</div>`:''}
+        </td>
+        <td class="c-author">${a ? esc(a.name) : '<span class="no-author">未绑定</span>'}</td>
+        <td><span class="badge ${L.is_live?'on':'off'}">${L.is_live?'已上线':'未上线'}</span></td>
+        <td class="c-act"><button class="btn ghost small edit-btn">编辑</button></td>
+      </tr>`;
+    }).join("");
+
+    $$("#letters-body tr[data-id]").forEach(tr=>{
+      const id = +tr.dataset.id;
+      tr.querySelector(".edit-btn").onclick = (e)=>{ e.stopPropagation(); openLetterModal(id); };
+      tr.onclick = ()=> openLetterModal(id);
+      const h = tr.querySelector(".drag");
+      if(h) h.addEventListener("pointerdown", e=> startDrag(e, tr));
+    });
+  }
+
+  /* ---------- 拖动排序：直接改开启时间 ---------- */
+  let dragState = null;
+  function startDrag(e, tr){
+    e.preventDefault(); e.stopPropagation();
+    dragState = { tr, id:+tr.dataset.id };
+    tr.classList.add("dragging");
+    document.addEventListener("pointermove", onDragMove);
+    document.addEventListener("pointerup", onDragEnd, {once:true});
+  }
+  function onDragMove(e){
+    if(!dragState) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const over = el && el.closest("#letters-body tr[data-id]");
+    $$("#letters-body tr").forEach(r=>r.classList.remove("drop-target"));
+    if(over && over !== dragState.tr) over.classList.add("drop-target");
+  }
+  async function onDragEnd(e){
+    if(!dragState) return;
+    document.removeEventListener("pointermove", onDragMove);
+    const { tr, id } = dragState;
+    dragState = null;
+    tr.classList.remove("dragging");
+    const target = $("#letters-body tr.drop-target");
+    $$("#letters-body tr").forEach(r=>r.classList.remove("drop-target"));
+    if(!target) return;
+
+    const fromIdx = LETTERS.findIndex(L=>L.id===id);
+    const toIdx   = LETTERS.findIndex(L=>L.id===+target.dataset.id);
+    if(fromIdx<0 || toIdx<0 || fromIdx===toIdx) return;
+
+    // 重排数组，然后把 slot 按新顺序重编 0,1,2...
+    const arr = LETTERS.slice();
+    const [moved] = arr.splice(fromIdx,1);
+    arr.splice(toIdx,0,moved);
+
+    const changed = [];
+    arr.forEach((L,i)=>{ if(L.slot !== i){ L.slot = i; changed.push(L); } });
+    LETTERS = arr;
+    renderLetters();
+
+    try{
+      for(const L of changed) await saveLetterRow(L);
+      toast(`已更新开启时间（${changed.length} 封）`);
+    }catch(err){ console.warn(err); toast("排序保存失败"); await reloadAll(); }
+  }
+
+  // 用现有资料整笔保存（拖动排序用）
+  function saveLetterRow(L){
+    return rpc("admin_update_letter",{
+      p_key:KEY, p_id:L.id,
+      p_title:L.title||"", p_body:L.body||"", p_image:L.image||"", p_video:L.video||"",
+      p_link:L.link||"", p_link_text:L.link_text||"",
+      p_teaser_text:L.teaser_text||"", p_teaser_image:L.teaser_image||"",
+      p_author_id:L.author_id||null, p_slot:L.slot||0,
+      p_is_live:!!L.is_live, p_sort:L.slot||0
+    });
+  }
+
+  /* ================= 信件编辑弹窗 ================= */
+  function openLetterModal(id){
+    const L = LETTERS.find(x=>x.id===id);
+    if(!L) return;
+    editingLetter = L;
+    const m = $("#letter-modal");
+    $("#lm-title").textContent = `编辑 · ${slotLabel(L.slot||0)}`;
+
+    // 开启时间下拉：0~47，已被别的信占用的标注出来
+    const slotSel = $(".f-slot", m);
+    slotSel.innerHTML = Array.from({length:48},(_,i)=>{
+      const taken = LETTERS.find(x=>x.slot===i && x.id!==L.id);
+      return `<option value="${i}" ${i===(L.slot||0)?"selected":""}>${slotLabel(i)}${taken?"（已被占用）":""}</option>`;
+    }).join("");
+
+    // 作者下拉：只列还没被绑走的
+    const list = availableAuthors(L.id, L.author_id);
+    $(".f-author", m).innerHTML = `<option value="">— 未指定作者 —</option>` +
+      list.map(a=>`<option value="${a.id}" ${String(L.author_id)===String(a.id)?"selected":""}>${esc(a.name)}</option>`).join("") +
+      (AUTHORS.length && !list.length ? `<option disabled>（所有作者都已绑定其他作品）</option>` : "");
+
+    $(".f-title", m).value       = L.title || "";
+    $(".f-live", m).checked      = !!L.is_live;
+    $(".f-teaser-text", m).value = L.teaser_text || "";
+    $(".f-body", m).value        = L.body || "";
+    $(".f-video", m).value       = L.video || "";
+    $(".f-link", m).value        = L.link || "";
+    $(".f-linktext", m).value    = L.link_text || "";
+
+    $("#lm-teaser-up").innerHTML = uploadField("teaser-image", L.teaser_image);
+    $("#lm-image-up").innerHTML  = uploadField("image", L.image);
+    bindUploads(m);
+
+    m.classList.add("show");
+  }
+
+  $("#lm-save").onclick = async ()=>{
+    const L = editingLetter; if(!L) return;
+    const m = $("#letter-modal");
+    const authorVal = $(".f-author", m).value;
+    const newSlot   = parseInt($(".f-slot", m).value)||0;
+
+    // 时间被占用 → 和对方对调，不让两封撞在同一时段
+    const clash = LETTERS.find(x=>x.slot===newSlot && x.id!==L.id);
+    try{
+      if(clash){ clash.slot = L.slot; await saveLetterRow(clash); }
+      await rpc("admin_update_letter",{
+        p_key:KEY, p_id:L.id,
+        p_title:$(".f-title",m).value,
+        p_body:$(".f-body",m).value,
+        p_image:$(".f-image",m).value,
+        p_video:$(".f-video",m).value,
+        p_link:$(".f-link",m).value,
+        p_link_text:$(".f-linktext",m).value,
+        p_teaser_text:$(".f-teaser-text",m).value,
+        p_teaser_image:$(".f-teaser-image",m).value,
+        p_author_id: authorVal ? parseInt(authorVal) : null,
+        p_slot: newSlot,
+        p_is_live:$(".f-live",m).checked,
+        p_sort: newSlot
+      });
+      closeModals();
+      await reloadAll();
+      toast(clash ? "已保存（与另一封对调了时间）" : "已保存 ✅");
+    }catch(e){ console.warn(e); toast("保存失败"); }
+  };
+
+  $("#lm-del").onclick = async ()=>{
+    const L = editingLetter; if(!L) return;
+    if(!confirm(`确定删除「${L.title||"未命名"}」？`)) return;
+    try{ await rpc("admin_delete_letter",{p_key:KEY,p_id:L.id}); closeModals(); await reloadAll(); toast("已删除"); }
+    catch(e){ toast("删除失败"); }
+  };
+
+  $("#reloadBtn").onclick=async ()=>{ try{ await reloadAll(); toast("已刷新"); }catch(e){ toast("刷新失败"); } };
   $("#addBtn").onclick=async ()=>{
-    try{ await rpc("admin_add_letter",{p_key:KEY}); await reloadLetters(); toast("已新增一封，往下拉编辑"); }
+    try{ await rpc("admin_add_letter",{p_key:KEY}); await reloadAll(); toast("已新增一封，点它编辑"); }
     catch(e){ toast("新增失败"); }
   };
   $("#initBtn").onclick=async ()=>{
-    if(!confirm("会补齐缺少的解锁时段（已有的不动）。继续？")) return;
-    try{ await rpc("admin_init_slots",{p_key:KEY}); await reloadLetters(); toast("已初始化 48 个时段"); }
+    if(!confirm("会补齐缺少的开启时段（已有的不动）。继续？")) return;
+    try{ await rpc("admin_init_slots",{p_key:KEY}); await reloadAll(); toast("已初始化 48 个时段"); }
     catch(e){ toast("初始化失败：请先在 Supabase 建好 admin_init_slots"); }
   };
 
-  function authorOptions(sel){
-    return `<option value="">— 未指定作者 —</option>` + AUTHORS.map(a=>
-      `<option value="${a.id}" ${String(sel)===String(a.id)?"selected":""}>${esc(a.name)}</option>`).join("");
+  /* ================= 作者列表 ================= */
+  $("#q-authors").oninput = renderAuthors;
+
+  function renderAuthors(){
+    const q = ($("#q-authors").value || "").trim().toLowerCase();
+    const body = $("#authors-body");
+    const rows = AUTHORS.filter(A=> !q || (A.name||"").toLowerCase().includes(q));
+
+    if(!rows.length){
+      body.innerHTML = `<tr class="empty-row"><td colspan="4">${
+        AUTHORS.length ? "没有符合搜索的作者" : "还没有作者，点上面「新增作者」开始。"
+      }</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = rows.map(A=>{
+      const owner = authorOwner(A.id);
+      return `<tr data-id="${A.id}">
+        <td style="font-weight:700">${esc(A.name)}</td>
+        <td class="muted">${esc(A.bio)||"—"}</td>
+        <td>${owner
+          ? `<span class="badge on">${esc(owner.title)||"未命名"}</span>`
+          : `<span class="badge off">未绑定</span>`}</td>
+        <td class="c-act"><button class="btn ghost small edit-btn">编辑</button></td>
+      </tr>`;
+    }).join("");
+
+    $$("#authors-body tr[data-id]").forEach(tr=>{
+      const id = +tr.dataset.id;
+      tr.querySelector(".edit-btn").onclick = (e)=>{ e.stopPropagation(); openAuthorModal(id); };
+      tr.onclick = ()=> openAuthorModal(id);
+    });
   }
+
+  function openAuthorModal(id){
+    const A = AUTHORS.find(x=>x.id===id); if(!A) return;
+    editingAuthor = A;
+    const m = $("#author-modal");
+    $("#am-title").textContent = "编辑作者";
+    $(".a-name", m).value = A.name || "";
+    $(".a-bio",  m).value = A.bio  || "";
+    m.classList.add("show");
+  }
+
+  $("#am-save").onclick = async ()=>{
+    const A = editingAuthor; if(!A) return;
+    const m = $("#author-modal");
+    try{
+      await rpc("admin_update_author",{
+        p_key:KEY, p_id:A.id,
+        p_name:$(".a-name",m).value,
+        p_avatar:"",                    // 头像已移除，固定空值
+        p_bio:$(".a-bio",m).value,
+        p_sort:A.sort_order||0
+      });
+      closeModals();
+      await reloadAll();
+      toast("已保存 ✅");
+    }catch(e){ console.warn(e); toast("保存失败"); }
+  };
+
+  $("#am-del").onclick = async ()=>{
+    const A = editingAuthor; if(!A) return;
+    const owner = authorOwner(A.id);
+    if(!confirm(owner
+      ? `删除「${A.name}」？绑定的《${owner.title||"未命名"}》会变成未绑定。`
+      : `删除作者「${A.name}」？`)) return;
+    try{ await rpc("admin_delete_author",{p_key:KEY,p_id:A.id}); closeModals(); await reloadAll(); toast("已删除"); }
+    catch(e){ toast("删除失败"); }
+  };
+
+  $("#reloadAuthorBtn").onclick=async ()=>{ try{ await reloadAll(); toast("已刷新"); }catch(e){ toast("刷新失败"); } };
+  $("#addAuthorBtn").onclick=async ()=>{
+    try{ await rpc("admin_add_author",{p_key:KEY}); await reloadAll(); toast("已新增作者，点它改名"); }
+    catch(e){ toast("新增失败"); }
+  };
+
+  /* ================= 弹窗开关 ================= */
+  function closeModals(){
+    $$(".modal-bg").forEach(m=>m.classList.remove("show"));
+    editingLetter = null; editingAuthor = null;
+  }
+  $$("[data-close-modal]").forEach(b=> b.onclick = closeModals);
+  $$(".modal-bg").forEach(m=> m.onclick = (e)=>{ if(e.target===m) closeModals(); });
+  addEventListener("keydown", e=>{ if(e.key==="Escape") closeModals(); });
 
   /* ==========================================================
      图片上传（Supabase Storage）
-     - 图片：可上传，也可以直接贴网址，两种都行
-     - 影片：只贴网址（YouTube / Bilibili / mp4 直链）
-     - 文件名带随机串，粉丝猜不到未解锁的素材网址
   ========================================================== */
-  const BUCKET   = "letters";
-  const MAX_IMG  = 15 * 1024 * 1024;   // 15MB（48 封 × 15MB ≈ 720MB，在免费版 1GB 内）
+  const BUCKET  = "letters";
+  const MAX_IMG = 15 * 1024 * 1024;
 
   function isUploaded(url){ return !!url && url.indexOf("/storage/v1/object/public/") > -1; }
   function fileLabel(url){
@@ -233,12 +650,10 @@
     return `${rand}.${ext}`;
   }
 
-  // 图片控件：上传 或 贴网址，两种都支持；prefix 区分信件(f-)和作者(a-)
-  function uploadField(field, value, kind, prefix){
-    const cls    = (prefix || "f-") + field;
-    const uped   = isUploaded(value);       // 是上传上来的文件
-    const linked = !!value && !uped;        // 是贴的外部网址
-
+  function uploadField(field, value){
+    const cls    = "f-" + field;
+    const uped   = isUploaded(value);
+    const linked = !!value && !uped;
     return `
       <div class="up-wrap" data-target="${cls}">
         <input type="hidden" class="${cls}" value="${esc(value)}"/>
@@ -261,20 +676,19 @@
       </div>`;
   }
 
-  // 给一个容器里所有图片控件绑事件
   function bindUploads(root){
-    root.querySelectorAll(".up-wrap").forEach(wrap=>{
-      const hidden  = wrap.querySelector("."+wrap.dataset.target);
-      const box     = wrap.querySelector(".up");
-      const file    = wrap.querySelector('input[type=file]');
-      const done    = wrap.querySelector(".up-done");
-      const nameEl  = wrap.querySelector(".up-done .nm");
-      const rmBtn   = wrap.querySelector(".rm");
-      const bar     = wrap.querySelector(".up-bar");
-      const barFill = wrap.querySelector(".up-bar i");
-      const preview = wrap.querySelector(".up-preview");
-      const urlIn   = wrap.querySelector(".up-url");
-      const orBox   = wrap.querySelector(".up-or");
+    $$(".up-wrap", root).forEach(wrap=>{
+      const hidden  = $("."+wrap.dataset.target, wrap);
+      const box     = $(".up", wrap);
+      const file    = $('input[type=file]', wrap);
+      const done    = $(".up-done", wrap);
+      const nameEl  = $(".up-done .nm", wrap);
+      const rmBtn   = $(".rm", wrap);
+      const bar     = $(".up-bar", wrap);
+      const barFill = $(".up-bar i", wrap);
+      const preview = $(".up-preview", wrap);
+      const urlIn   = $(".up-url", wrap);
+      const orBox   = $(".up-or", wrap);
 
       box.onclick = ()=> file.click();
       box.addEventListener("dragover", e=>{ e.preventDefault(); box.classList.add("over"); });
@@ -285,9 +699,8 @@
       });
       file.onchange = ()=>{ if(file.files[0]) doUpload(file.files[0]); };
 
-      // 贴网址：和上传二选一，贴了就实时预览
       urlIn.oninput = ()=>{
-        if(isUploaded(hidden.value)) return;    // 已经传过文件了，别被网址覆盖
+        if(isUploaded(hidden.value)) return;
         const v = urlIn.value.trim();
         hidden.value = v;
         preview.innerHTML = v ? `<img class="thumb" src="${esc(v)}" alt=""/>` : "";
@@ -301,7 +714,6 @@
         orBox.style.display = "";
         preview.innerHTML  = "";
         urlIn.value = "";
-        // 顺手把 Storage 里的旧文件删掉，别占空间
         if(isUploaded(old)){
           const path = old.split("/storage/v1/object/public/" + BUCKET + "/")[1];
           if(path) sb.storage.from(BUCKET).remove([decodeURIComponent(path)]).catch(()=>{});
@@ -346,161 +758,6 @@
         file.value = "";
       }
     });
-  }
-
-  function render(rows){
-    const box=$("#list");
-    if(!rows || !rows.length){ box.innerHTML='<div class="card muted">还没有信，点上面「新增一封信」或「初始化 48 封」开始。</div>'; return; }
-    box.innerHTML=rows.map(L=>`
-      <div class="card letter ${L.is_live?'live':''}" data-id="${L.id}">
-        <div class="row" style="margin-bottom:10px;">
-          <span class="badge ${L.is_live?'on':'off'}">${L.is_live?'● 已上线':'○ 未上线'}</span>
-          <span class="muted">解锁 ${slotLabel(L.slot||0)}</span>
-          <label class="switch row" style="margin:0;gap:6px;">
-            <input type="checkbox" class="live" ${L.is_live?'checked':''} style="width:auto;margin:0;"/> 上线
-          </label>
-        </div>
-
-        <div class="sec-title">基本</div>
-        <label>标题</label>
-        <input class="f-title" value="${esc(L.title)}" placeholder="例如 00:00 · 824快乐"/>
-        <div class="grid2">
-          <div>
-            <label>解锁时段（0=00:00，1=00:30 … 47=23:30）</label>
-            <input class="f-slot" type="number" min="0" max="47" value="${L.slot||0}"/>
-          </div>
-          <div>
-            <label>物料作者</label>
-            <select class="f-author">${authorOptions(L.author_id)}</select>
-          </div>
-        </div>
-
-        <div class="sec-title">预告（未解锁时粉丝看到的）</div>
-        <label>预告文字</label>
-        <textarea class="f-teaser-text" placeholder="给一点悬念…">${esc(L.teaser_text)}</textarea>
-        <label>预告图片（前端会自动打码模糊）</label>
-        ${uploadField("teaser-image", L.teaser_image)}
-
-        <div class="sec-title">完整内容（解锁后才下发）</div>
-        <label>文字内容</label>
-        <textarea class="f-body" placeholder="信的正文…">${esc(L.body)}</textarea>
-
-        <label>影片网址（YouTube / Bilibili / mp4 直链）</label>
-        <input class="f-video" value="${esc(L.video)}" placeholder="https://..."/>
-
-        <label>图片</label>
-        ${uploadField("image", L.image)}
-
-        <label>链接</label>
-        <input class="f-link" value="${esc(L.link)}" placeholder="https://..."/>
-        <label>链接显示文字</label>
-        <input class="f-linktext" value="${esc(L.link_text)}" placeholder="点击查看"/>
-
-        <label>排序（数字小的排前面）</label>
-        <input class="f-sort" type="number" value="${L.sort_order}"/>
-        <div class="row">
-          <button class="btn small save">保存这封</button>
-          <button class="btn ghost small danger del">删除</button>
-        </div>
-      </div>
-    `).join("");
-
-    box.querySelectorAll(".letter").forEach(el=>{
-      const id=+el.dataset.id;
-      el.querySelector(".save").onclick=()=>saveOne(el,id);
-      el.querySelector(".del").onclick=()=>delOne(id);
-      el.querySelector(".live").onchange=()=>saveOne(el,id,true);
-    });
-    bindUploads(box);
-  }
-
-  async function saveOne(el,id,quiet){
-    const g=(c)=>el.querySelector(c);
-    const authorVal = g(".f-author").value;
-    try{
-      await rpc("admin_update_letter",{
-        p_key:KEY, p_id:id,
-        p_title:g(".f-title").value,
-        p_body:g(".f-body").value,
-        p_image:g(".f-image").value,
-        p_video:g(".f-video").value,
-        p_link:g(".f-link").value,
-        p_link_text:g(".f-linktext").value,
-        p_teaser_text:g(".f-teaser-text").value,
-        p_teaser_image:g(".f-teaser-image").value,
-        p_author_id: authorVal ? parseInt(authorVal) : null,
-        p_slot: parseInt(g(".f-slot").value)||0,
-        p_is_live:g(".live").checked,
-        p_sort:parseInt(g(".f-sort").value)||0
-      });
-      toast(quiet?(g(".live").checked?"已上线 ✅":"已下线"):"已保存 ✅");
-      if(quiet) await reloadLetters();
-    }catch(e){ console.warn(e); toast("保存失败"); }
-  }
-  async function delOne(id){
-    if(!confirm("确定删除这封信？")) return;
-    try{ await rpc("admin_delete_letter",{p_key:KEY,p_id:id}); await reloadLetters(); toast("已删除"); }
-    catch(e){ toast("删除失败"); }
-  }
-
-  /* ---------- 作者 ---------- */
-  async function reloadAuthors(){
-    AUTHORS = await rpc("admin_list_authors",{p_key:KEY}) || [];
-    renderAuthors();
-  }
-  $("#reloadAuthorBtn").onclick=async ()=>{ try{ await reloadAuthors(); toast("已刷新"); }catch(e){ toast("刷新失败"); } };
-  $("#addAuthorBtn").onclick=async ()=>{
-    try{ await rpc("admin_add_author",{p_key:KEY}); await reloadAuthors(); toast("已新增作者"); }
-    catch(e){ toast("新增失败"); }
-  };
-
-  function renderAuthors(){
-    const box=$("#author-list");
-    if(!AUTHORS.length){ box.innerHTML='<div class="card muted">还没有作者，点上面「新增作者」开始。</div>'; return; }
-    box.innerHTML=AUTHORS.map(A=>`
-      <div class="card" data-id="${A.id}">
-        <div class="author-row">
-          ${A.avatar?`<img class="av" src="${esc(A.avatar)}" alt="">`:`<div class="av">${esc(initial(A.name))}</div>`}
-          <strong>${esc(A.name)}</strong>
-        </div>
-        <label>作者名</label>
-        <input class="a-name" value="${esc(A.name)}" placeholder="作者名 / ID"/>
-        <label>头像（可空，空则显示首字母）</label>
-        ${uploadField("avatar", A.avatar, null, "a-")}
-        <label>一句话介绍（可空）</label>
-        <input class="a-bio" value="${esc(A.bio)}" placeholder="例如：画手 / 剪辑 / 写手"/>
-        <label>排序</label>
-        <input class="a-sort" type="number" value="${A.sort_order||0}"/>
-        <div class="row">
-          <button class="btn small a-save">保存</button>
-          <button class="btn ghost small danger a-del">删除</button>
-        </div>
-      </div>
-    `).join("");
-
-    box.querySelectorAll("[data-id]").forEach(el=>{
-      const id=+el.dataset.id;
-      el.querySelector(".a-save").onclick=async ()=>{
-        try{
-          await rpc("admin_update_author",{
-            p_key:KEY, p_id:id,
-            p_name:el.querySelector(".a-name").value,
-            p_avatar:el.querySelector(".a-avatar").value,
-            p_bio:el.querySelector(".a-bio").value,
-            p_sort:parseInt(el.querySelector(".a-sort").value)||0
-          });
-          await reloadAuthors();
-          await reloadLetters();   // 下拉选项要同步更新
-          toast("已保存 ✅");
-        }catch(e){ toast("保存失败"); }
-      };
-      el.querySelector(".a-del").onclick=async ()=>{
-        if(!confirm("删除这位作者？绑定他的信会变成「未指定作者」。")) return;
-        try{ await rpc("admin_delete_author",{p_key:KEY,p_id:id}); await reloadAuthors(); await reloadLetters(); toast("已删除"); }
-        catch(e){ toast("删除失败"); }
-      };
-    });
-    bindUploads(box);
   }
 
   if(KEY) enter();
