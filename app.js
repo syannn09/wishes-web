@@ -2,7 +2,7 @@
    树信归期 v2 · 主逻辑
    - 48 封信，每半小时解锁一封（中国时间 824 当天）
    - 未解锁只显示预告，完整内容由服务端 RPC 控制不下发
-   - 物料 × 作者 连连看（不储存进度）
+   - 物料 × 作者 牵红线（不储存进度）
 ========================================================= */
 const $  = (s)=>document.querySelector(s);
 const $$ = (s)=>Array.from(document.querySelectorAll(s));
@@ -27,9 +27,9 @@ function nowChina(){
 function isAug24China(){ const c = nowChina(); return c.getMonth()===7 && c.getDate()===24; }
 
 /* ---------- 三个阶段 ----------
-   823 及之前 = "teaser"  预告 + 连连看，没有完整内容
-   824        = "reveal"  每半小时挂一封上树，不显示预告信封，没有连连看
-   825 及之后 = "archive" 48 封全开，没有连连看
+   823 及之前 = "teaser"  预告 + 牵红线，没有完整内容
+   824        = "reveal"  每半小时挂一封上树，不显示预告信封，没有牵红线
+   825 及之后 = "archive" 48 封全开，没有牵红线
 */
 function currentPhase(){
   if(FORCE_PHASE) return FORCE_PHASE;
@@ -251,7 +251,7 @@ function openLetter(L){
 }
 
 /* =========================================================
-   连连看 · 分关消除式（不储存进度）
+   牵红线 · 分关消除式（不储存进度）
    1 作者 = 1 作品，48 对拆成每关 6 对。
    点一个作品 → 点它的作者：对了两张卡化成樱花瓣飘走，
    错了抖一下。全程没有连线，一屏永远只有 12 张卡。
@@ -266,7 +266,7 @@ function shuffle(a){
 }
 
 function buildGameData(){
-  // 连连看只在 823 预告期出现，那时一封都还没解锁，
+  // 牵红线只在 823 预告期出现，那时一封都还没解锁，
   // 所以不看解锁状态，只要绑了作者就能玩（作者本身不是秘密）
   const pool = shuffle(LETTERS.filter(L => L.author_id));
   GAME.rounds = [];
@@ -432,12 +432,12 @@ $("#btn-sakura").onclick = ()=>{
 };
 
 /* =========================================================
-   阶段切换：控制连连看按钮 / 副标题
+   阶段切换：控制牵红线按钮 / 副标题
 ========================================================= */
 function applyPhase(){
   const phase = currentPhase();
   document.body.dataset.phase = phase;
-  // 连连看只在 823（预告期）出现
+  // 牵红线只在 823（预告期）出现
   $("#btn-match").style.display = (phase === "teaser") ? "" : "none";
   $("#subtitle").textContent =
     phase === "teaser"  ? "点击信封 开启洋灵的平行时空" :
@@ -509,7 +509,7 @@ function startFireworks(){
 ========================================================= */
 applyPhase();
 loadLetters();
-// #play：直接打开连连看（demo.html 的「直接玩连连看」按钮用）
+// #play：直接打开牵红线（demo.html 的「直接玩牵红线」按钮用）
 if(location.hash === "#play" && currentPhase() === "teaser"){
   setTimeout(()=>{ if(LETTERS.length) $("#btn-match").click(); }, 400);
 }

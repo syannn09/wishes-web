@@ -153,9 +153,11 @@
   .sheet-body{white-space:pre-wrap;line-height:1.85;font-size:15px;color:var(--ink);}
   .sheet-media{width:100%;border-radius:10px;margin-top:14px;display:block;}
   .sheet-video{width:100%;aspect-ratio:16/9;border-radius:10px;margin-top:14px;border:none;display:block;background:#000;}
+  /* 信纸里的链接按钮：不用渐变，蓝底 + 洋红字（应援色） */
   .sheet-link{display:block;text-align:center;margin-top:16px;
-    background:linear-gradient(135deg,var(--magenta),var(--sky-blue));color:#fff;text-decoration:none;
-    padding:12px 20px;border-radius:24px;font-weight:700;font-size:15px;}
+    background:var(--sky-blue);color:var(--magenta);text-decoration:none;
+    padding:12px 20px;border-radius:24px;font-weight:800;font-size:15px;
+    box-shadow:0 6px 16px rgba(50,181,225,.35);}
   .sheet-author{display:flex;align-items:center;gap:11px;margin-top:18px;padding-top:14px;
     border-top:1px dashed var(--paper-edge);}
   .sheet-author .av{width:42px;height:42px;border-radius:50%;object-fit:cover;flex:none;
@@ -173,7 +175,7 @@
   .teaser-countdown{margin-top:8px;text-align:center;font-size:15px;font-weight:800;color:var(--sakura-deep);
     letter-spacing:1px;}
 
-  /* ---------- 连连看 ---------- */
+  /* ---------- 牵红线 ---------- */
   #match-modal .modal-game{position:relative;background:var(--panel);border-radius:22px;
     width:100%;max-width:760px;height:88vh;display:flex;flex-direction:column;
     box-shadow:0 26px 60px rgba(60,40,80,.42);overflow:hidden;}
@@ -263,7 +265,7 @@
   </div>
 
   <div id="actions">
-    <button class="btn btn-primary" id="btn-match">🔗 连连看</button>
+    <button class="btn btn-primary" id="btn-match">🔗 牵红线</button>
     <button class="btn btn-ghost" id="btn-sakura">🌸 樱花</button>
   </div>
 
@@ -277,12 +279,12 @@
     </div>
   </div>
 
-  <!-- 连连看 -->
+  <!-- 牵红线 -->
   <div class="overlay" id="match-modal">
     <div class="modal-game">
       <button class="game-close" data-close>×</button>
       <div class="game-head">
-        <h3>作品 × 作者 连连看</h3>
+        <h3>作品 × 作者 牵红线</h3>
         <p>点一个作品，再点它的作者，配对成功就化成樱花</p>
         <div id="game-score"></div>
       </div>

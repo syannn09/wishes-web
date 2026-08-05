@@ -80,7 +80,7 @@
       id: i+1,
       slot: i,
       title: work,
-      tag: T.tag,                        // 连连看卡片上的类型 chip
+      tag: T.tag,                        // 牵红线卡片上的类型 chip
       unlocked: false,                   // 由 app.js 按阶段覆盖
       teaser_text : TEASERS[i % TEASERS.length],
       teaser_image: "",

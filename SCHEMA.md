@@ -8,7 +8,7 @@
 | 动作 | 对象 | 说明 |
 |---|---|---|
 | 保留 | `letters` | 增加 4 个字段：预告内容、视频、解锁槽位 |
-| 新增 | `authors` | 作者（物料创作者），连连看的右侧卡片 |
+| 新增 | `authors` | 作者（物料创作者），牵红线的右侧卡片 |
 | 停用 | `messages` | 粉丝留言功能已砍掉，表保留不删（历史数据），前端不再读写 |
 
 `messages` 表**不要删除** —— 824 之前的留言是客户资产。前端已移除所有读写，表留着即可。
@@ -57,7 +57,7 @@ create index if not exists letters_slot_idx on letters(slot);
 | `teaser_image` | ✅ 显示（CSS 模糊处理） | 不显示 |
 | `title` | ✅ 显示 | ✅ 显示 |
 | `body` / `image` / `video` / `link` | ❌ 不下发 | ✅ 显示 |
-| `author_id` | ❌ 不下发 | ✅ 用于连连看 |
+| `author_id` | ❌ 不下发 | ✅ 用于牵红线 |
 
 > **重要**：未解锁的完整内容**不会下发到前端**（见第 4 节的 RPC），
 > 所以粉丝无法用开发者工具提前偷看。
@@ -133,7 +133,7 @@ begin
     case when L.slot <= max_slot then L.video     else '' end,
     case when L.slot <= max_slot then L.link      else '' end,
     case when L.slot <= max_slot then L.link_text else '' end,
-    -- 作者信息「永远下发」：823 的连连看要靠它配对，
+    -- 作者信息「永远下发」：823 的牵红线要靠它配对，
     -- 而且作者是谁本来就不是秘密；真正保密的是上面的正文/影片/图片。
     L.author_id, coalesce(A.name,''), coalesce(A.avatar,''), coalesce(A.bio,'')
   from letters L
