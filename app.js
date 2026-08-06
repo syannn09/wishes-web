@@ -230,7 +230,7 @@ function openLetter(L){
   const head = `
     <div class="sheet-slot">${slotLabel(L.slot)}</div>
     <h2 class="sheet-title">${escapeHtml(L.title || "未命名")}</h2>
-    <div class="sheet-club">${L.gameUnlocked && !L.unlocked ? "🎀 红线解锁 · 2026" : "2026"}</div>
+    <div class="sheet-club">${L.gameUnlocked && !L.unlocked ? "🎈 红线解锁 · 2026" : "2026"}</div>
     <div class="sheet-rule"></div>`;
 
   // 到点解锁 或 823 牵红线答对解锁，都显示完整版
@@ -569,7 +569,7 @@ function afterCongrats(){
   GAME.lock = false;
   if(GAME.matchedInRound >= (GAME.rounds[GAME.round]||[]).length){
     if(GAME.round + 1 < GAME.rounds.length){
-      setTimeout(()=> showRoundBanner(`第 ${GAME.round+1} 关 · 红线已牵好 🎀`), 300);
+      setTimeout(()=> showRoundBanner(`第 ${GAME.round+1} 关 · 红线已牵好 🎈`), 300);
       setTimeout(()=>{ GAME.round++; renderRound(); }, 1450);
     }else{
       setTimeout(()=>{ $("#game-done").classList.add("show"); startFireworks(); }, 600);
