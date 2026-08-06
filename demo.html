@@ -120,17 +120,17 @@
         <div class="day-head">
           <span class="day-tag">8 月 24 日 · 正日</span>
           <h2>开信日</h2>
-          <div class="sub">每半小时，一封信挂上树</div>
+          <div class="sub">按时间表，一封一封挂上树</div>
         </div>
         <ul class="feats">
           <li class="yes"><b>只挂已开启的信</b>，预告信封不出现</li>
-          <li class="yes">00:00 一封 → 00:30 两封 → …… → 23:30 满 48 封</li>
+          <li class="yes">00:24 第一封 → 01:09 第二封 → …… → 23:30 满 48 封（客户时间表）</li>
           <li class="yes">点开是<b>完整内容</b>：文字 / 影片 / 图片 / 链接 + 作者署名</li>
           <li class="yes">樱花飘落（三天都有）</li>
           <li class="no">没有牵红线（当天专心看信）</li>
         </ul>
         <div class="day-foot">
-          <a class="btn" href="./index.html?demo=1&amp;phase=reveal&amp;slot=0">看 00:00 第一封刚开</a>
+          <a class="btn" href="./index.html?demo=1&amp;phase=reveal&amp;slot=0">看 00:24 第一封刚开</a>
           <a class="btn ghost" href="./index.html?demo=1&amp;phase=reveal&amp;slot=17">看中午（18 封）</a>
           <a class="btn ghost" href="./index.html?demo=1&amp;phase=reveal&amp;slot=47">看深夜（48 封全开）</a>
         </div>
@@ -160,7 +160,7 @@
     <!-- 824 时间轴 -->
     <div class="tl">
       <h3>824 当天 · 信封怎么一封一封长出来</h3>
-      <p class="note">每半小时自动多一封，粉丝不用刷新页面</p>
+      <p class="note">按时间表自动开启（有 0:24、13:14 这些有意义的时间点），粉丝不用刷新页面</p>
       <div class="tl-row" id="tl-row"></div>
     </div>
 
@@ -172,18 +172,18 @@
   </div>
 
   <script>
-    // 824 时间轴：挑几个时间点，画出信封逐渐变多的样子
+    // 824 时间轴：挑客户时间表里几个时间点，画出信封逐渐变多的样子
     const POINTS = [
-      { slot:0,  label:"00:00" },
-      { slot:1,  label:"00:30" },
-      { slot:3,  label:"01:30" },
-      { slot:11, label:"05:30" },
-      { slot:23, label:"11:30" },
-      { slot:35, label:"17:30" },
-      { slot:47, label:"23:30" }
+      { n:1,  label:"00:24" },
+      { n:2,  label:"01:09" },
+      { n:9,  label:"04:21" },
+      { n:17, label:"08:24" },
+      { n:26, label:"13:14" },
+      { n:41, label:"20:24" },
+      { n:48, label:"23:30" }
     ];
     document.getElementById("tl-row").innerHTML = POINTS.map(p=>{
-      const n = p.slot + 1;
+      const n = p.n;
       const shown = Math.min(n, 12);
       const envs  = "✉️".repeat(shown) + (n > shown ? "…" : "");
       return `<div class="tl-item">

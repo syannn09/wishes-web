@@ -64,22 +64,22 @@ create index if not exists letters_slot_idx on letters(slot);
 
 ### `slot` 与时间的对应
 
-`slot = 小时 × 2 + (分钟 >= 30 ? 1 : 0)`，中国时区。
+**`slot` = 当天第几分钟开启**（中国时区），不再是固定半小时序号。
+时间表由客户提供、后台可改，无需加新 column —— 直接沿用 `slot` 这个 int 栏位。
 
-| slot | 时间 | slot | 时间 |
+| 时间 | slot | 时间 | slot |
 |---|---|---|---|
-| 0 | 00:00 | 24 | 12:00 |
-| 1 | 00:30 | 25 | 12:30 |
-| 2 | 01:00 | ... | ... |
-| ... | ... | 47 | 23:30 |
+| 00:24 | 24 | 13:14 | 794 |
+| 01:09 | 69 | 20:24 | 1224 |
+| 08:24 | 504 | 23:30 | 1410 |
 
-## 3. 解锁规则（三个阶段，中国时间）
+## 3. 解锁规则（三个阶段，中国时区）
 
 | 日期 | `max_slot` | 效果 |
 |---|---|---|
-| **823 及之前** | `-1` | 一封都不解锁，48 封全是预告 |
-| **824** | `小时×2 + (分钟≥30?1:0)` | 00:00 开第 1 封、00:30 开第 2 封 …… 23:30 全开 |
-| **825 及之后** | `47` | 48 封全开，永久保留 |
+| **823 及之前** | `-1` | 到点解锁全关；但**牵红线答对可单封解锁**（见 §4b `guess_author`） |
+| **824** | `小时×60 + 分钟` | 按客户时间表逐封开启（第 1 封 00:24） |
+| **825 及之后** | `1441` | 48 封全开，永久保留 |
 
 > ⚠️ 这一段要和前端 `app.js` 的 `currentPhase()` 保持一致。
 > 前端控制「显示什么」，服务端控制「下发什么」，两边都要对。
@@ -112,14 +112,14 @@ begin
   m := extract(month from cn)::int;
   d := extract(day   from cn)::int;
 
-  -- 三个阶段：
-  --   823 及之前 → -1（一封都不解锁，只有预告）
-  --   824        → 按半小时递增
-  --   825 及之后 → 47（48 封全开）
+  -- 三个阶段（slot = 当天第几分钟开启）：
+  --   823 及之前 → -1（到点解锁全关，只有预告）
+  --   824        → 当前分钟数，按客户时间表逐封开
+  --   825 及之后 → 1441（48 封全开）
   max_slot := case
-    when m = 8 and d = 24 then (extract(hour from cn)::int * 2
-                                + case when extract(minute from cn) >= 30 then 1 else 0 end)
-    when m > 8 or (m = 8 and d >= 25) then 47
+    when m = 8 and d = 24 then (extract(hour from cn)::int * 60
+                                + extract(minute from cn)::int)
+    when m > 8 or (m = 8 and d >= 25) then 1441
     else -1
   end;
 
@@ -182,6 +182,38 @@ grant execute on function preview_get_letters(text) to anon;
 
 > `app.admin_key` 沿用现有 admin RPC 的密钥设置方式。
 > 若现有 `admin_list_letters` 用的是别的校验方式，请把上面的 `if` 改成一致的写法。
+
+## 4b. 牵红线「答对解锁」RPC
+
+823 预告期，粉丝在牵红线里**答对一组配对**，就能提前看那一封的完整内容。
+服务端验证「作品-作者」配对正确才下发 —— 答案本身就是钥匙，不用储存任何状态。
+
+```sql
+create or replace function guess_author(p_letter_id bigint, p_author_id bigint)
+returns table (
+  id bigint, body text, image text, video text, link text, link_text text
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  return query
+  select L.id, coalesce(L.body,''), coalesce(L.image,''), coalesce(L.video,''),
+         coalesce(L.link,''), coalesce(L.link_text,'')
+  from letters L
+  where L.id = p_letter_id
+    and L.is_live = true
+    and L.author_id = p_author_id;   -- 配对不对就一行都不返回
+end;
+$$;
+
+grant execute on function guess_author(bigint, bigint) to anon;
+```
+
+> 已知取舍（客户已确认接受）：由于 `public_get_letters` 会下发 `author_id`
+> 供游戏配对，懂技术的粉丝理论上可以从 API 回应里读出配对再逐封解锁。
+> 客户判断 823 当天不会有人这么做，不做额外防护。
 
 ## 5. 作者管理 RPC（后台用）
 
@@ -277,22 +309,54 @@ grant execute on function admin_update_letter(text,bigint,text,text,text,text,te
 ```sql
 create or replace function admin_init_slots(p_key text)
 returns void
-language plpgsql security definer as $$
+language plpgsql security definer set search_path = public as $$
+declare
+  -- 客户时间表：0:24, 1:09, 1:30 … 23:30（存为当天第几分钟）
+  schedule int[] := array[
+      24,   69,   90,  120,  150,  180,  210,  240,
+     261,  300,  320,  360,  390,  420,  450,  480,
+     504,  540,  570,  600,  630,  660,  690,  720,
+     750,  794,  810,  840,  870,  900,  930,  960,
+     990, 1020, 1040, 1080, 1110, 1140, 1170, 1200,
+    1224, 1260, 1290, 1320, 1350, 1364, 1380, 1410];
+  t int;
 begin
-  if p_key is distinct from current_setting('app.admin_key', true) then
-    raise exception 'bad key';
-  end if;
-
-  insert into letters (title, slot, sort_order, is_live, teaser_text)
-  select
-    lpad((i/2)::text, 2, '0') || ':' || case when i%2=0 then '00' else '30' end
-      || ' · 第' || (i+1) || '封',
-    i, i, false, '还没到时候…'
-  from generate_series(0, 47) as i
-  where not exists (select 1 from letters where slot = i);
+  perform _check_key(p_key);
+  foreach t in array schedule loop
+    if not exists (select 1 from letters where slot = t) then
+      insert into letters (title, slot, sort_order, is_live, teaser_text)
+      values (lpad((t/60)::text,2,'0') || ':' || lpad((t%60)::text,2,'0'),
+              t, t, false, '还没到时候…');
+    end if;
+  end loop;
 end; $$;
 
 grant execute on function admin_init_slots(text) to anon;
+```
+
+### 旧数据迁移（只需一次）
+
+之前建的信 slot 是「半小时序号」（0、1、3…），要映射到新时间表：
+按原顺序排好，依次套上时间表的前几个时间。
+
+```sql
+with sched as (
+  select t, row_number() over () as rn
+  from unnest(array[
+      24,   69,   90,  120,  150,  180,  210,  240,
+     261,  300,  320,  360,  390,  420,  450,  480,
+     504,  540,  570,  600,  630,  660,  690,  720,
+     750,  794,  810,  840,  870,  900,  930,  960,
+     990, 1020, 1040, 1080, 1110, 1140, 1170, 1200,
+    1224, 1260, 1290, 1320, 1350, 1364, 1380, 1410]) as t
+),
+ordered as (
+  select id, row_number() over (order by slot, id) as rn from letters
+)
+update letters L
+   set slot = s.t, sort_order = s.t
+  from ordered o join sched s using (rn)
+ where L.id = o.id;
 ```
 
 ## 8. `messages` 表：停用但保留

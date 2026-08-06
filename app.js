@@ -1,6 +1,6 @@
 /* =========================================================
    树信归期 v2 · 主逻辑
-   - 48 封信，每半小时解锁一封（中国时间 824 当天）
+   - 48 封信，824 当天按客户时间表逐封解锁（首封 00:24）
    - 未解锁只显示预告，完整内容由服务端 RPC 控制不下发
    - 物料 × 作者 牵红线（不储存进度）
 ========================================================= */
@@ -13,7 +13,7 @@ const CHINA_OFFSET = 8*60;
 const QS = new URLSearchParams(location.search);
 const PREVIEW_KEY  = QS.get("preview") || "";           // ?preview=<管理密钥> → 全解锁
 const DEMO         = QS.has("demo");                     // ?demo=1  → 用本地假数据，不连后台
-// ?slot=N 假装现在是第 N 个时段（只在 demo 下生效，用来测解锁效果）
+// ?slot=N（demo 专用）：假装「前 N+1 封已解锁」，例如 slot=0 → 1 封、slot=47 → 48 封全开
 const FAKE_SLOT    = QS.has("slot") ? Math.max(-1, Math.min(47, parseInt(QS.get("slot")))) : null;
 // ?phase=teaser|reveal|archive 强制某个阶段，给客户预览三天的样子
 const FORCE_PHASE  = ["teaser","reveal","archive"].includes(QS.get("phase")) ? QS.get("phase") : null;
@@ -29,7 +29,7 @@ function isAug24China(){ const c = nowChina(); return c.getMonth()===7 && c.getD
 
 /* ---------- 三个阶段 ----------
    823 及之前 = "teaser"  预告 + 牵红线，没有完整内容
-   824        = "reveal"  每半小时挂一封上树，不显示预告信封，没有牵红线
+   824        = "reveal"  按时间表逐封挂上树，不显示预告信封，没有牵红线
    825 及之后 = "archive" 48 封全开，没有牵红线
 */
 function currentPhase(){
@@ -39,15 +39,16 @@ function currentPhase(){
   if(m > 7 || (m === 7 && d >= 25)) return "archive";
   return "teaser";
 }
-// 当天已过的半小时数：00:00→0, 00:30→1 … 23:30→47
-function currentSlot(){ const c = nowChina(); return c.getHours()*2 + (c.getMinutes()>=30 ? 1 : 0); }
-function slotLabel(i){
-  return `${String(Math.floor(i/2)).padStart(2,"0")}:${(i%2)===0 ? "00" : "30"}`;
+/* slot = 「当天第几分钟」开启（0:24 → 24，23:30 → 1410）。
+   时间表由客户提供、管理员可在后台调整，不再是固定半小时。 */
+function currentSlot(){ const c = nowChina(); return c.getHours()*60 + c.getMinutes(); }
+function slotLabel(mins){
+  return `${String(Math.floor(mins/60)).padStart(2,"0")}:${String(mins%60).padStart(2,"0")}`;
 }
 // 距离某个 slot 解锁还有多久（毫秒）；已过则返回 0
 function msUntilSlot(slot){
   const c = nowChina();
-  const target = new Date(c); target.setHours(Math.floor(slot/2), (slot%2)*30, 0, 0);
+  const target = new Date(c); target.setHours(Math.floor(slot/60), slot%60, 0, 0);
   const diff = target - c;
   return diff > 0 ? diff : 0;
 }
@@ -109,6 +110,14 @@ if(PREVIEW_KEY) document.body.classList.add("is-preview");
 ========================================================= */
 let LETTERS = [];   // 服务端返回的 48 封（含解锁状态）
 
+/* 823 牵红线答对后解锁的信（只存内存，刷新即失效 —— 符合「不储存」）。
+   loadLetters 每 30 秒会重拉数据，靠这个 Map 把解锁结果合并回去。 */
+const GAME_UNLOCKED = new Map();   // letter_id → 完整内容字段
+function mergeGameUnlock(L){
+  if(!GAME_UNLOCKED.has(L.id)) return L;
+  return { ...L, ...GAME_UNLOCKED.get(L.id), gameUnlocked:true };
+}
+
 function envelopeSVG(){
   return `<svg viewBox="0 0 80 60" xmlns="${SVG_NS}">
     <rect x="2" y="8" width="76" height="50" rx="5" fill="var(--envelope)" stroke="var(--envelope-dark)" stroke-width="1.2"/>
@@ -129,8 +138,8 @@ function renderGrid(){
   if(!list.length){
     grid.innerHTML = `<div class="empty" style="grid-column:1/-1">${
       phase === "reveal"
-        ? "第一封信 00:00 开启<br>再等一会儿 🌸"
-        : "信件还在准备中…<br>824 当天每半小时开启一封 🌸"
+        ? "第一封信 00:24 开启<br>再等一会儿 🌸"
+        : "信件还在准备中…<br>824 当天按时间表逐封开启 🌸"
     }</div>`;
     return;
   }
@@ -152,11 +161,14 @@ async function loadLetters(){
   // 演示模式：用本地假数据，可用 ?slot=N 指定「现在是第几个时段」
   if(DEMO && window.DEMO_DATA){
     const phase = currentPhase();
-    // 预告期一封都不开；824 按时段开；825 全开
-    const max = phase === "teaser"  ? -1
-              : phase === "archive" ? 47
-              : (FAKE_SLOT !== null ? FAKE_SLOT : currentSlot());
-    LETTERS = window.DEMO_DATA.letters.map(L => ({ ...L, unlocked: L.slot <= max }));
+    // 预告期一封都不开；825 全开；824 按时间表开（?slot=N 假装前 N+1 封已开）
+    const sorted = window.DEMO_DATA.letters.slice().sort((a,b)=>a.slot-b.slot);
+    let unlockedCount;
+    if(phase === "teaser")       unlockedCount = 0;
+    else if(phase === "archive") unlockedCount = sorted.length;
+    else if(FAKE_SLOT !== null)  unlockedCount = FAKE_SLOT + 1;
+    else                         unlockedCount = sorted.filter(L => L.slot <= currentSlot()).length;
+    LETTERS = sorted.map((L,i) => mergeGameUnlock({ ...L, unlocked: i < unlockedCount }));
     renderGrid();
     return;
   }
@@ -166,7 +178,7 @@ async function loadLetters(){
     const args = PREVIEW_KEY ? { p_key: PREVIEW_KEY } : {};
     const { data, error } = await sb.rpc(fn, args);
     if(error) throw error;
-    LETTERS = data || [];
+    LETTERS = (data || []).map(mergeGameUnlock);
   }catch(e){
     console.warn("loadLetters", e);
     if(PREVIEW_KEY) toast("预览密钥错误");
@@ -177,10 +189,16 @@ async function loadLetters(){
 /* =========================================================
    信件弹窗
 ========================================================= */
+// 作者头像：统一用 CONFIG.AUTHOR_AVATAR（客户提供的同一张图）；
+// 没配置时退回单人头像/首字母
+function avatarSrc(L){
+  return (window.CONFIG && window.CONFIG.AUTHOR_AVATAR) || L.author_avatar || "";
+}
 function authorBlock(L){
   if(!L.author_name) return "";
-  const av = L.author_avatar
-    ? `<img class="av" src="${escapeHtml(L.author_avatar)}" alt="">`
+  const src = avatarSrc(L);
+  const av = src
+    ? `<img class="av" src="${escapeHtml(src)}" alt="">`
     : `<div class="av">${escapeHtml(initial(L.author_name))}</div>`;
   return `<div class="sheet-author">
     ${av}
@@ -211,11 +229,12 @@ function openLetter(L){
   const paper = $("#sheet-paper");
   const head = `
     <div class="sheet-slot">${slotLabel(L.slot)}</div>
-    <h2 class="sheet-title">${escapeHtml(L.title || "第 " + (L.slot+1) + " 封")}</h2>
-    <div class="sheet-club">2026</div>
+    <h2 class="sheet-title">${escapeHtml(L.title || "未命名")}</h2>
+    <div class="sheet-club">${L.gameUnlocked && !L.unlocked ? "🎀 红线解锁 · 2026" : "2026"}</div>
     <div class="sheet-rule"></div>`;
 
-  if(L.unlocked){
+  // 到点解锁 或 823 牵红线答对解锁，都显示完整版
+  if(L.unlocked || L.gameUnlocked){
     paper.innerHTML = head
       + (L.body  ? `<div class="sheet-body">${escapeHtml(L.body)}</div>` : "")
       + videoBlock(L.video)
@@ -254,7 +273,8 @@ function openLetter(L){
    错了抖一下。全程没有连线，一屏永远只有 12 张卡。
 ========================================================= */
 const PAIRS_PER_ROUND = 6;
-const GAME = { rounds:[], round:0, matchedInRound:0, picked:null, tied:[], lock:false };
+const GAME = { rounds:[], round:0, matchedInRound:0, picked:null, tied:[], lock:false,
+               totalTied:0, over:false };
 
 function shuffle(a){
   const r = a.slice();
@@ -277,10 +297,14 @@ function buildGameData(){
   GAME.round = 0;
   GAME.matchedInRound = 0;
   GAME.picked = null;
+  GAME.totalTied = 0;   // 本局累计牵好的红线（游戏结束画面用）
+  GAME.over = false;
 }
 
 function renderGame(){
   $("#game-done").classList.remove("show");
+  $("#game-over").classList.remove("show");
+  $("#congrats").classList.remove("show");
   renderRound();
 }
 
@@ -315,9 +339,13 @@ function tagCardHTML(L){
   </div>`;
 }
 function plaqueHTML(L){
+  const src = avatarSrc(L);
   return `<div class="plaque" data-author="${L.author_id}">
-    <div class="pname">${escapeHtml(L.author_name)}</div>
-    ${L.author_bio ? `<div class="pbio">${escapeHtml(L.author_bio)}</div>` : ""}
+    ${src ? `<img class="pav" src="${escapeHtml(src)}" alt="">` : ""}
+    <div class="ptext">
+      <div class="pname">${escapeHtml(L.author_name)}</div>
+      ${L.author_bio ? `<div class="pbio">${escapeHtml(L.author_bio)}</div>` : ""}
+    </div>
   </div>`;
 }
 
@@ -347,7 +375,7 @@ function renderRound(){
        <div class="lr-scene">${trunkSVG()}
          <div class="lr-rows">${works.map((L,i)=>`
            <div class="lr-row">
-             <div class="tag-wrap lr" data-author="${L.author_id}">${tagCardHTML(L)}</div>
+             <div class="tag-wrap lr" data-author="${L.author_id}" data-id="${L.id}">${tagCardHTML(L)}</div>
              ${plaqueHTML(authors[i])}
            </div>`).join("")}
          </div>
@@ -361,7 +389,7 @@ function renderRound(){
       rows.map(row => `
         <div class="branch-row">${branchSVG()}
           <div class="tags">${row.map(L => `
-            <div class="tag-wrap" data-author="${L.author_id}">
+            <div class="tag-wrap" data-author="${L.author_id}" data-id="${L.id}">
               <div class="tag-string"></div>
               ${tagCardHTML(L)}
             </div>`).join("")}
@@ -387,7 +415,7 @@ function updateScore(){
 
 /* ---- 点选：短册和名牌都能先点，点另一边就判定 ---- */
 function onCardTap(el){
-  if(GAME.lock) return;
+  if(GAME.lock || GAME.over) return;
   if(el.classList.contains("tied")) return;   // 已经牵好的不再响应
 
   if(GAME.picked === el){                         // 再点一次 = 收回红线
@@ -473,12 +501,38 @@ function makeKnot(svg, path, len){
   return holder;
 }
 
-/* ---- 牵对：画线 → 打结 → 红线留着，一直牵到换关 ---- */
+/* ---- 答对 → 把该封信的完整内容拉下来（823 提前解锁的核心） ----
+   真实模式走 guess_author RPC：服务端验证「作品-作者」配对正确才下发完整内容；
+   演示模式内容本来就在本地，直接标记。只存内存，刷新即失效。 */
+async function unlockLetterContent(letterId, authorId){
+  if(GAME_UNLOCKED.has(letterId)) return;
+  if(DEMO || !sb){
+    const L = LETTERS.find(x => x.id === letterId);
+    if(L) GAME_UNLOCKED.set(letterId, {
+      body:L.body, image:L.image, video:L.video, link:L.link, link_text:L.link_text
+    });
+  }else{
+    try{
+      const { data, error } = await sb.rpc("guess_author", { p_letter_id: letterId, p_author_id: authorId });
+      if(error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if(row) GAME_UNLOCKED.set(letterId, {
+        body:row.body, image:row.image, video:row.video, link:row.link, link_text:row.link_text
+      });
+    }catch(e){ console.warn("guess_author", e); }
+  }
+  LETTERS = LETTERS.map(mergeGameUnlock);
+}
+
+/* ---- 牵对：画线 → 打结 → 弹「恭喜解锁」→ 可看完整版 ---- */
 function tieString(tag, plaque){
   GAME.lock = true;
   const { svg, path, len } = drawRedString(tag, plaque);
   const rec = { tag, plaque, path, holder:null };
   GAME.tied.push(rec);
+
+  const letterId = +tag.dataset.id;
+  unlockLetterContent(letterId, +tag.dataset.author);   // 动画播放的同时先去拉内容
 
   setTimeout(()=>{ rec.holder = makeKnot(svg, path, len); }, 400);
 
@@ -486,19 +540,41 @@ function tieString(tag, plaque){
     burstPetals(tag); burstPetals(plaque);
     // 牵好的一对安定下来：停止摇晃、变柔和、不再响应点击
     tag.classList.add("tied"); plaque.classList.add("tied");
-    GAME.lock = false;
     GAME.matchedInRound++;
+    GAME.totalTied++;
     updateScore();
-    if(GAME.matchedInRound >= (GAME.rounds[GAME.round]||[]).length){
-      if(GAME.round + 1 < GAME.rounds.length){
-        // 停一拍，让玩家看一眼整张牵好的红线网
-        setTimeout(()=> showRoundBanner(`第 ${GAME.round+1} 关 · 红线已牵好 🎀`), 500);
-        setTimeout(()=>{ GAME.round++; renderRound(); }, 1650);
-      }else{
-        setTimeout(()=>{ $("#game-done").classList.add("show"); startFireworks(); }, 900);
-      }
-    }
+    showCongrats(letterId);   // GAME.lock 保持，直到玩家在弹窗里做选择
   }, 900);
+}
+
+/* ---- 恭喜弹窗：看完整版 / 继续牵线 ---- */
+function showCongrats(letterId){
+  const L = LETTERS.find(x => x.id === letterId) || {};
+  $("#congrats .cg-work").textContent = L.title || "";
+  const box = $("#congrats");
+  box.classList.add("show");
+
+  $("#cg-view").onclick = ()=>{
+    box.classList.remove("show");
+    const fresh = LETTERS.find(x => x.id === letterId);
+    if(fresh) openLetter(fresh);            // 信纸弹窗盖在游戏上层，关掉就回到游戏
+    afterCongrats();
+  };
+  $("#cg-next").onclick = ()=>{
+    box.classList.remove("show");
+    afterCongrats();
+  };
+}
+function afterCongrats(){
+  GAME.lock = false;
+  if(GAME.matchedInRound >= (GAME.rounds[GAME.round]||[]).length){
+    if(GAME.round + 1 < GAME.rounds.length){
+      setTimeout(()=> showRoundBanner(`第 ${GAME.round+1} 关 · 红线已牵好 🎀`), 300);
+      setTimeout(()=>{ GAME.round++; renderRound(); }, 1450);
+    }else{
+      setTimeout(()=>{ $("#game-done").classList.add("show"); startFireworks(); }, 600);
+    }
+  }
 }
 
 // 窗口尺寸变化时，把已牵好的红线按新位置重画
@@ -524,9 +600,10 @@ function redrawTied(){
 }
 addEventListener("resize", redrawTied);
 
-/* ---- 牵错：线画到一半绷断落下 ---- */
+/* ---- 牵错：线绷断 → 本局结束（可重新开始，关卡重新随机） ---- */
 function snapString(tag, plaque){
   GAME.lock = true;
+  GAME.over = true;
   const { path } = drawRedString(tag, plaque);
   setTimeout(()=>{
     path.classList.add("falls");                 // 整条线松脱下坠
@@ -535,9 +612,12 @@ function snapString(tag, plaque){
   setTimeout(()=>{
     path.remove();
     tag.classList.remove("shakeit"); plaque.classList.remove("shakeit");
-    GAME.lock = false;
-  }, 850);
+    // 游戏结束画面：告诉玩家这局牵好了几根，可以重新来（重新随机）
+    $("#go-count").textContent = GAME.totalTied;
+    $("#game-over").classList.add("show");
+  }, 900);
 }
+$("#go-restart") && ($("#go-restart").onclick = ()=>{ buildGameData(); renderGame(); });
 
 // 在卡片位置撒一把樱花瓣
 function burstPetals(el){
@@ -596,7 +676,7 @@ function applyPhase(){
   $("#btn-match").style.display = (phase === "teaser") ? "" : "none";
   $("#subtitle").textContent =
     phase === "teaser"  ? "点击信封 开启洋灵的平行时空" :
-    phase === "reveal"  ? "每半小时，一封信挂上树" :
+    phase === "reveal"  ? "信封按时间表，一封一封挂上树" :
                           "48 封信，全部在这里了";
 }
 
@@ -617,8 +697,9 @@ function updateCountdown(){
     return;
   }
   if(phase === "reveal"){
-    const s = (DEMO && FAKE_SLOT !== null) ? FAKE_SLOT : currentSlot();
-    $("#countdown").textContent = `🎉 824 快乐 · 已开启 ${Math.max(0,s+1)} / 48 封`;
+    const opened = LETTERS.filter(L => L.unlocked).length;
+    const total  = LETTERS.length || 48;
+    $("#countdown").textContent = `🎉 824 快乐 · 已开启 ${opened} / ${total} 封`;
     return;
   }
   // teaser：不倒数了，改成从 2016.8.24 数「相识多少天」

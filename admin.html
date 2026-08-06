@@ -154,7 +154,8 @@
         </div>
         <div class="search"><input id="q-letters" placeholder="搜索作品标题 或 作者名…" /></div>
         <p class="muted" style="margin:10px 0 0;">
-          拖动左边 <b>⠿</b> 可以调整<b>开启时间</b>顺序（第 1 行 = 00:00，第 2 行 = 00:30 …）。
+          开启时间按客户时间表（0:24、1:09 … 23:30），可在编辑弹窗里改。
+          拖动左边 <b>⠿</b> 调整顺序时，信件会<b>沿用整份时间表重新对号入座</b>。
           点整行打开编辑。「上线」的信才会出现在粉丝页。
         </p>
         <div id="letters-warn" class="muted" style="margin-top:8px;"></div>
@@ -214,7 +215,7 @@
       <div class="grid2">
         <div>
           <label>开启时间</label>
-          <select class="f-slot"></select>
+          <input class="f-slot" type="time" />
         </div>
         <div>
           <label>作者（一位作者只能绑一个作品）</label>
@@ -286,7 +287,10 @@
 
   function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2400);}
   function esc(s){return (s||"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  function slotLabel(i){return `${String(Math.floor(i/2)).padStart(2,"0")}:${(i%2)===0?"00":"30"}`;}
+  // slot = 当天第几分钟开启（0:24 → 24）
+  function slotLabel(mins){return `${String(Math.floor(mins/60)).padStart(2,"0")}:${String(mins%60).padStart(2,"0")}`;}
+  function slotToTimeValue(mins){return slotLabel(mins);}                    // input[type=time] 用
+  function timeValueToSlot(v){ const [h,m]=(v||"0:0").split(":").map(Number); return (h||0)*60+(m||0); }
 
   async function rpc(fn,args){
     const {data,error}=await sb.rpc(fn,args);
@@ -434,13 +438,15 @@
     const toIdx   = LETTERS.findIndex(L=>L.id===+target.dataset.id);
     if(fromIdx<0 || toIdx<0 || fromIdx===toIdx) return;
 
-    // 重排数组，然后把 slot 按新顺序重编 0,1,2...
+    // 时间表本身不变（0:24、1:09…），拖动只是让信件在这份时间表里换位置：
+    // 先记下现有的时间序列，重排信件后按新顺序重新对号入座
+    const times = LETTERS.map(L=>L.slot||0).sort((a,b)=>a-b);
     const arr = LETTERS.slice();
     const [moved] = arr.splice(fromIdx,1);
     arr.splice(toIdx,0,moved);
 
     const changed = [];
-    arr.forEach((L,i)=>{ if(L.slot !== i){ L.slot = i; changed.push(L); } });
+    arr.forEach((L,i)=>{ if(L.slot !== times[i]){ L.slot = times[i]; changed.push(L); } });
     LETTERS = arr;
     renderLetters();
 
@@ -470,12 +476,8 @@
     const m = $("#letter-modal");
     $("#lm-title").textContent = `编辑 · ${slotLabel(L.slot||0)}`;
 
-    // 开启时间下拉：0~47，已被别的信占用的标注出来
-    const slotSel = $(".f-slot", m);
-    slotSel.innerHTML = Array.from({length:48},(_,i)=>{
-      const taken = LETTERS.find(x=>x.slot===i && x.id!==L.id);
-      return `<option value="${i}" ${i===(L.slot||0)?"selected":""}>${slotLabel(i)}${taken?"（已被占用）":""}</option>`;
-    }).join("");
+    // 开启时间：直接填 HH:MM（撞到别的信会自动对调）
+    $(".f-slot", m).value = slotToTimeValue(L.slot||0);
 
     // 作者下拉：只列还没被绑走的
     const list = availableAuthors(L.id, L.author_id);
@@ -502,7 +504,7 @@
     const L = editingLetter; if(!L) return;
     const m = $("#letter-modal");
     const authorVal = $(".f-author", m).value;
-    const newSlot   = parseInt($(".f-slot", m).value)||0;
+    const newSlot   = timeValueToSlot($(".f-slot", m).value);
 
     // 时间被占用 → 和对方对调，不让两封撞在同一时段
     const clash = LETTERS.find(x=>x.slot===newSlot && x.id!==L.id);
@@ -542,8 +544,8 @@
     catch(e){ toast("新增失败"); }
   };
   $("#initBtn").onclick=async ()=>{
-    if(!confirm("会补齐缺少的开启时段（已有的不动）。继续？")) return;
-    try{ await rpc("admin_init_slots",{p_key:KEY}); await reloadAll(); toast("已初始化 48 个时段"); }
+    if(!confirm("会按客户时间表（0:24、1:09 … 23:30）补齐缺少的信（已有的不动）。继续？")) return;
+    try{ await rpc("admin_init_slots",{p_key:KEY}); await reloadAll(); toast("已按时间表初始化 48 封"); }
     catch(e){ toast("初始化失败：请先在 Supabase 建好 admin_init_slots"); }
   };
 

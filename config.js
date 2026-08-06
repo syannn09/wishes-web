@@ -12,5 +12,9 @@ window.CONFIG = {
 
   // 背景图：樱花树（客户提供）
   // 旧的比心图还在 assets/bg.jpg，留作备份
-  BG_IMAGE: "./assets/sakura-bg.jpg"
+  BG_IMAGE: "./assets/sakura-bg.jpg",
+
+  // 作者统一头像：所有作者都用这一张（客户提供）
+  // 换图直接覆盖 assets/author-avatar.jpg 即可
+  AUTHOR_AVATAR: "./assets/author-avatar.jpg"
 };

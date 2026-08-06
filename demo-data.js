@@ -68,17 +68,28 @@
     "快了，再等一会儿。",
   ];
 
+  // 客户提供的 48 个开启时间（当天第几分钟）：0:24, 1:09, 1:30 … 23:30
+  const SCHEDULE = [
+      24,   69,   90,  120,  150,  180,  210,  240,
+     261,  300,  320,  360,  390,  420,  450,  480,
+     504,  540,  570,  600,  630,  660,  690,  720,
+     750,  794,  810,  840,  870,  900,  930,  960,
+     990, 1020, 1040, 1080, 1110, 1140, 1170, 1200,
+    1224, 1260, 1290, 1320, 1350, 1364, 1380, 1410
+  ];
+
   // 组装 48 对：一位作者一个作品
   const authors = [], letters = [];
   for(let i = 0; i < 48; i++){
     const T = TYPES[i % TYPES.length];
     const work = T.works[Math.floor(i / TYPES.length) % T.works.length];
-    const time = `${String(Math.floor(i/2)).padStart(2,"0")}:${(i%2)===0?"00":"30"}`;
+    const mins = SCHEDULE[i];
+    const time = `${String(Math.floor(mins/60)).padStart(2,"0")}:${String(mins%60).padStart(2,"0")}`;
 
     authors.push({ id:i+1, name:NAMES[i], avatar:"", bio:T.bio });
     letters.push({
       id: i+1,
-      slot: i,
+      slot: mins,          // = 当天第几分钟开启
       title: work,
       tag: T.tag,                        // 牵红线卡片上的类型 chip
       unlocked: false,                   // 由 app.js 按阶段覆盖
