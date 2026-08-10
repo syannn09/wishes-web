@@ -110,14 +110,6 @@ if(PREVIEW_KEY) document.body.classList.add("is-preview");
 ========================================================= */
 let LETTERS = [];   // 服务端返回的 48 封（含解锁状态）
 
-/* 823 牵红线答对后解锁的信（只存内存，刷新即失效 —— 符合「不储存」）。
-   loadLetters 每 30 秒会重拉数据，靠这个 Map 把解锁结果合并回去。 */
-const GAME_UNLOCKED = new Map();   // letter_id → 完整内容字段
-function mergeGameUnlock(L){
-  if(!GAME_UNLOCKED.has(L.id)) return L;
-  return { ...L, ...GAME_UNLOCKED.get(L.id), gameUnlocked:true };
-}
-
 function envelopeSVG(){
   return `<svg viewBox="0 0 80 60" xmlns="${SVG_NS}">
     <rect x="2" y="8" width="76" height="50" rx="5" fill="var(--envelope)" stroke="var(--envelope-dark)" stroke-width="1.2"/>
@@ -168,7 +160,7 @@ async function loadLetters(){
     else if(phase === "archive") unlockedCount = sorted.length;
     else if(FAKE_SLOT !== null)  unlockedCount = FAKE_SLOT + 1;
     else                         unlockedCount = sorted.filter(L => L.slot <= currentSlot()).length;
-    LETTERS = sorted.map((L,i) => mergeGameUnlock({ ...L, unlocked: i < unlockedCount }));
+    LETTERS = sorted.map((L,i) => ({ ...L, unlocked: i < unlockedCount }));
     renderGrid();
     return;
   }
@@ -178,7 +170,7 @@ async function loadLetters(){
     const args = PREVIEW_KEY ? { p_key: PREVIEW_KEY } : {};
     const { data, error } = await sb.rpc(fn, args);
     if(error) throw error;
-    LETTERS = (data || []).map(mergeGameUnlock);
+    LETTERS = data || [];
   }catch(e){
     console.warn("loadLetters", e);
     if(PREVIEW_KEY) toast("预览密钥错误");
@@ -230,11 +222,10 @@ function openLetter(L){
   const head = `
     <div class="sheet-slot">${slotLabel(L.slot)}</div>
     <h2 class="sheet-title">${escapeHtml(L.title || "未命名")}</h2>
-    <div class="sheet-club">${L.gameUnlocked && !L.unlocked ? "🎈 红线解锁 · 2026" : "2026"}</div>
+    <div class="sheet-club">2026</div>
     <div class="sheet-rule"></div>`;
 
-  // 到点解锁 或 823 牵红线答对解锁，都显示完整版
-  if(L.unlocked || L.gameUnlocked){
+  if(L.unlocked){
     paper.innerHTML = head
       + (L.body  ? `<div class="sheet-body">${escapeHtml(L.body)}</div>` : "")
       + videoBlock(L.video)
@@ -501,38 +492,13 @@ function makeKnot(svg, path, len){
   return holder;
 }
 
-/* ---- 答对 → 把该封信的完整内容拉下来（823 提前解锁的核心） ----
-   真实模式走 guess_author RPC：服务端验证「作品-作者」配对正确才下发完整内容；
-   演示模式内容本来就在本地，直接标记。只存内存，刷新即失效。 */
-async function unlockLetterContent(letterId, authorId){
-  if(GAME_UNLOCKED.has(letterId)) return;
-  if(DEMO || !sb){
-    const L = LETTERS.find(x => x.id === letterId);
-    if(L) GAME_UNLOCKED.set(letterId, {
-      body:L.body, image:L.image, video:L.video, link:L.link, link_text:L.link_text
-    });
-  }else{
-    try{
-      const { data, error } = await sb.rpc("guess_author", { p_letter_id: letterId, p_author_id: authorId });
-      if(error) throw error;
-      const row = Array.isArray(data) ? data[0] : data;
-      if(row) GAME_UNLOCKED.set(letterId, {
-        body:row.body, image:row.image, video:row.video, link:row.link, link_text:row.link_text
-      });
-    }catch(e){ console.warn("guess_author", e); }
-  }
-  LETTERS = LETTERS.map(mergeGameUnlock);
-}
-
-/* ---- 牵对：画线 → 打结 → 弹「恭喜解锁」→ 可看完整版 ---- */
+/* ---- 牵对：画线 → 打结 → 弹表情包 ----
+   完整内容一律留到 824 按时间表解锁，823 只玩游戏、看表情包。 */
 function tieString(tag, plaque){
   GAME.lock = true;
   const { svg, path, len } = drawRedString(tag, plaque);
   const rec = { tag, plaque, path, holder:null };
   GAME.tied.push(rec);
-
-  const letterId = +tag.dataset.id;
-  unlockLetterContent(letterId, +tag.dataset.author);   // 动画播放的同时先去拉内容
 
   setTimeout(()=>{ rec.holder = makeKnot(svg, path, len); }, 400);
 
@@ -543,23 +509,60 @@ function tieString(tag, plaque){
     GAME.matchedInRound++;
     GAME.totalTied++;
     updateScore();
-    showCongrats(letterId);   // GAME.lock 保持，直到玩家在弹窗里做选择
+    showCongrats(tag);        // GAME.lock 保持，直到玩家关掉表情包
   }, 900);
 }
 
-/* ---- 恭喜弹窗：看完整版 / 继续牵线 ---- */
-function showCongrats(letterId){
-  const L = LETTERS.find(x => x.id === letterId) || {};
-  $("#congrats .cg-work").textContent = L.title || "";
+/* ---- 表情包：答对抽 A 份、答错抽 B 份 ----
+   抽签袋式随机：一轮抽完才重复，48 题不会连着看到同一个。 */
+function makeStickerBag(list){
+  let bag = [];
+  let last = null;
+  return ()=>{
+    if(!list || !list.length) return null;
+    if(!bag.length){
+      bag = shuffle(list);
+      // 新一袋的最后一张（下次先抽的）若和上一张相同，跟前面换一下，
+      // 避免跨袋边界连着看到同一个表情包
+      if(list.length > 1 && bag[bag.length-1] === last){
+        [bag[0], bag[bag.length-1]] = [bag[bag.length-1], bag[0]];
+      }
+    }
+    last = bag.pop();
+    return last;
+  };
+}
+const nextCorrectSticker = makeStickerBag((window.CONFIG||{}).STICKERS_CORRECT);
+const nextWrongSticker   = makeStickerBag((window.CONFIG||{}).STICKERS_WRONG);
+
+// mp4/webm 用静音自动播放的 video（手机上要 muted+playsinline 才能自动播），其余当图片
+function stickerHTML(src){
+  if(!src) return "";
+  if(/\.(mp4|webm)$/i.test(src)){
+    return `<video class="sticker" src="${escapeHtml(src)}" autoplay muted loop playsinline preload="auto"></video>`;
+  }
+  return `<img class="sticker" src="${escapeHtml(src)}" alt="">`;
+}
+// 插进 DOM 后补一次 play()：某些浏览器/切后台回来时 autoplay 会被挡住
+function kickSticker(box){
+  const v = box.querySelector("video.sticker");
+  if(!v) return;
+  v.currentTime = 0;
+  const tryPlay = ()=> v.play().catch(()=>{});
+  tryPlay();
+  v.addEventListener("canplay", tryPlay, { once:true });
+}
+
+/* ---- 答对弹窗：只弹表情包，不给完整版（完整版留到 824） ---- */
+function showCongrats(tag){
+  const title = (tag.querySelector(".tag-title")||{}).textContent || "";
+  $("#congrats .cg-work").textContent = title;
+  // 有表情包就放表情包，没有就退回 🎈
+  const sticker = nextCorrectSticker();
+  $("#congrats .cg-big").innerHTML = sticker ? stickerHTML(sticker) : "🎈";
   const box = $("#congrats");
   box.classList.add("show");
-
-  $("#cg-view").onclick = ()=>{
-    box.classList.remove("show");
-    const fresh = LETTERS.find(x => x.id === letterId);
-    if(fresh) openLetter(fresh);            // 信纸弹窗盖在游戏上层，关掉就回到游戏
-    afterCongrats();
-  };
+  kickSticker(box);
   $("#cg-next").onclick = ()=>{
     box.classList.remove("show");
     afterCongrats();
@@ -614,7 +617,11 @@ function snapString(tag, plaque){
     tag.classList.remove("shakeit"); plaque.classList.remove("shakeit");
     // 游戏结束画面：告诉玩家这局牵好了几根，可以重新来（重新随机）
     $("#go-count").textContent = GAME.totalTied;
+    // 有 B 份表情包就放表情包，没有就退回 🥀
+    const sticker = nextWrongSticker();
+    $("#game-over .big").innerHTML = sticker ? stickerHTML(sticker) : "🥀";
     $("#game-over").classList.add("show");
+    kickSticker($("#game-over"));
   }, 900);
 }
 $("#go-restart") && ($("#go-restart").onclick = ()=>{ buildGameData(); renderGame(); });

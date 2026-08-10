@@ -77,7 +77,7 @@ create index if not exists letters_slot_idx on letters(slot);
 
 | 日期 | `max_slot` | 效果 |
 |---|---|---|
-| **823 及之前** | `-1` | 到点解锁全关；但**牵红线答对可单封解锁**（见 §4b `guess_author`） |
+| **823 及之前** | `-1` | 全部只有预告；牵红线只弹表情包，不解锁任何内容 |
 | **824** | `小时×60 + 分钟` | 按客户时间表逐封开启（第 1 封 00:24） |
 | **825 及之后** | `1441` | 48 封全开，永久保留 |
 
@@ -182,38 +182,6 @@ grant execute on function preview_get_letters(text) to anon;
 
 > `app.admin_key` 沿用现有 admin RPC 的密钥设置方式。
 > 若现有 `admin_list_letters` 用的是别的校验方式，请把上面的 `if` 改成一致的写法。
-
-## 4b. 牵红线「答对解锁」RPC
-
-823 预告期，粉丝在牵红线里**答对一组配对**，就能提前看那一封的完整内容。
-服务端验证「作品-作者」配对正确才下发 —— 答案本身就是钥匙，不用储存任何状态。
-
-```sql
-create or replace function guess_author(p_letter_id bigint, p_author_id bigint)
-returns table (
-  id bigint, body text, image text, video text, link text, link_text text
-)
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  return query
-  select L.id, coalesce(L.body,''), coalesce(L.image,''), coalesce(L.video,''),
-         coalesce(L.link,''), coalesce(L.link_text,'')
-  from letters L
-  where L.id = p_letter_id
-    and L.is_live = true
-    and L.author_id = p_author_id;   -- 配对不对就一行都不返回
-end;
-$$;
-
-grant execute on function guess_author(bigint, bigint) to anon;
-```
-
-> 已知取舍（客户已确认接受）：由于 `public_get_letters` 会下发 `author_id`
-> 供游戏配对，懂技术的粉丝理论上可以从 API 回应里读出配对再逐封解锁。
-> 客户判断 823 当天不会有人这么做，不做额外防护。
 
 ## 5. 作者管理 RPC（后台用）
 

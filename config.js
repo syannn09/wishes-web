@@ -16,5 +16,16 @@ window.CONFIG = {
 
   // 作者统一头像：所有作者都用这一张（客户提供）
   // 换图直接覆盖 assets/author-avatar.jpg 即可
-  AUTHOR_AVATAR: "./assets/author-avatar.jpg"
+  AUTHOR_AVATAR: "./assets/author-avatar.jpg",
+
+  // 牵红线表情包（客户提供，A 份答对用 / B 份答错用）
+  // 支持 mp4 / gif / png / jpg。加新表情包：把文件放进对应文件夹，再把路径加进清单。
+  // 每次弹出随机抽一个，抽完一轮才会重复。
+  STICKERS_CORRECT: [
+    "./assets/stickers/correct/1.mp4",
+    "./assets/stickers/correct/2.mp4"
+  ],
+  STICKERS_WRONG: [
+    // 例："./assets/stickers/wrong/1.mp4"
+  ]
 };
