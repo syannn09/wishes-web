@@ -1,0 +1,4 @@
+.DS_Store
+.claude/
+# 表情包原始 GIF（本機備份，不上傳；線上用壓好的 .webp）
+assets/stickers/_original/
