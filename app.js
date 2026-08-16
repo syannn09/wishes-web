@@ -202,6 +202,17 @@ function authorBlock(L){
 }
 
 // 视频：mp4 直链用 <video>，YouTube/Bilibili 用 iframe
+// 一封信的图片：新的 images 阵列优先，没有就退回旧的单图 image
+function letterImages(L){
+  let arr = [];
+  if(L.images){
+    try{ arr = typeof L.images === "string" ? JSON.parse(L.images) : L.images; }catch(_){ arr = []; }
+  }
+  if(!Array.isArray(arr)) arr = [];
+  if(!arr.length && L.image) arr = [L.image];
+  return arr.filter(Boolean);
+}
+
 function videoBlock(url){
   if(!url) return "";
   const u = url.trim();
@@ -229,7 +240,7 @@ function openLetter(L){
     paper.innerHTML = head
       + (L.body  ? `<div class="sheet-body">${escapeHtml(L.body)}</div>` : "")
       + videoBlock(L.video)
-      + (L.image ? `<img class="sheet-media" src="${escapeHtml(L.image)}" alt="" loading="lazy">` : "")
+      + letterImages(L).map(u=>`<img class="sheet-media" src="${escapeHtml(u)}" alt="" loading="lazy">`).join("")
       + (L.link  ? `<a class="sheet-link" href="${escapeHtml(L.link)}" target="_blank" rel="noopener">${escapeHtml(L.link_text || "点击查看")}</a>` : "")
       + authorBlock(L);
   }else{

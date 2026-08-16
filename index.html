@@ -320,17 +320,17 @@
   #congrats{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
     background:rgba(60,40,80,.28);backdrop-filter:blur(2px);padding:20px;}
   #congrats.show{display:flex;}
-  .cg-card{background:#fff;border-radius:20px;padding:22px 20px;max-width:320px;width:100%;text-align:center;
+  .cg-card{background:#fff;border-radius:20px;padding:22px 20px;max-width:340px;width:100%;text-align:center;
     box-shadow:0 18px 46px rgba(120,80,140,.35);animation:bannerPop .4s cubic-bezier(.3,1.4,.5,1);}
   .cg-big{font-size:38px;margin-bottom:6px;line-height:1;}
   /* 表情包（mp4 动图或图片）：弹出来的感觉 */
-  .sticker{width:132px;height:132px;object-fit:cover;border-radius:16px;display:block;margin:0 auto;
+  .sticker{width:240px;height:240px;object-fit:cover;border-radius:16px;display:block;margin:0 auto;
     box-shadow:0 8px 22px rgba(120,80,140,.25);
     animation:stickerPop .45s cubic-bezier(.3,1.5,.5,1);}
   @keyframes stickerPop{from{transform:scale(.4) rotate(-8deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
   #game-over .sticker{margin-bottom:4px;}
   .cg-card h4{margin:0 0 8px;font-size:17px;color:#e8404f;}
-  .cg-card .cg-work{margin:0;font-size:14px;font-weight:800;color:var(--ink);}
+  .cg-card .cg-work{margin:10px 0 0;font-size:17px;font-weight:800;color:var(--ink);}
   .cg-card .cg-sub{margin:4px 0 16px;font-size:12px;color:var(--ink-soft);}
   .cg-btns{display:flex;gap:9px;justify-content:center;}
   .cg-btns .btn{padding:11px 18px;font-size:14px;}
@@ -399,7 +399,6 @@
         <div id="congrats">
           <div class="cg-card">
             <div class="cg-big">🎈</div>
-            <h4>牵对啦！</h4>
             <p class="cg-work"></p>
             <p class="cg-sub">完整内容 824 当天准时开启</p>
             <div class="cg-btns">
@@ -411,8 +410,7 @@
         <!-- 答错：红线断了，本局结束 -->
         <div id="game-over">
           <div class="big">🥀</div>
-          <h4>呀，红线断了…</h4>
-          <p>月老说：缘分急不得<br>这一局你牵好了 <b id="go-count">0</b> 根红线</p>
+          <p>这一局你牵好了 <b id="go-count">0</b> 根红线</p>
           <button class="btn btn-primary" id="go-restart">再牵一次</button>
         </div>
 
@@ -429,10 +427,10 @@
   <canvas id="fireworks"></canvas>
   <div class="toast" id="toast"></div>
 
-  <script src="./config.js?v=3"></script>
+  <script src="./config.js?v=4"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <!-- 演示数据：只在 ?demo=1 时真正被用到 -->
-  <script src="./demo-data.js?v=3"></script>
-  <script src="./app.js?v=3"></script>
+  <script src="./demo-data.js?v=4"></script>
+  <script src="./app.js?v=4"></script>
 </body>
 </html>

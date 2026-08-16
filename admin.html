@@ -117,6 +117,13 @@
   .up-done .nm{font-size:12px;color:#5a7;word-break:break-all;flex:1;min-width:0;}
   .up-done .rm{border:none;background:#f4f4f6;color:#e0356b;border-radius:8px;
     padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;flex:none;}
+  /* 多图列表 */
+  .img-row{display:flex;align-items:center;gap:9px;margin-bottom:8px;padding:7px 9px;
+    background:#f4fbff;border:1px solid #bfe6f3;border-radius:11px;}
+  .img-row img{width:46px;height:46px;object-fit:cover;border-radius:8px;flex:none;background:#fff;}
+  .img-row .nm{font-size:12px;color:#5a7;word-break:break-all;flex:1;min-width:0;}
+  .img-row .rm{border:none;background:#f4f4f6;color:#e0356b;border-radius:8px;
+    padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;flex:none;}
 </style>
 </head>
 <body>
@@ -184,14 +191,14 @@
         </div>
         <div class="search"><input id="q-authors" placeholder="搜索作者名…" /></div>
         <p class="muted" style="margin:10px 0 0;">
-          一位作者只能绑定<b>一个</b>作品。已绑定的作者不会出现在其他信的下拉选单里。
+          一位作者可以有<b>多个</b>作品（同一位作者可绑定多封信）。
         </p>
         <div class="tbl-wrap">
           <table>
             <thead><tr>
               <th>作者名</th>
               <th>介绍</th>
-              <th style="width:150px">已绑定作品</th>
+              <th style="width:170px">作品</th>
               <th style="width:120px"></th>
             </tr></thead>
             <tbody id="authors-body"></tbody>
@@ -218,7 +225,7 @@
           <input class="f-slot" type="time" />
         </div>
         <div>
-          <label>作者（一位作者只能绑一个作品）</label>
+          <label>作者</label>
           <select class="f-author"></select>
         </div>
       </div>
@@ -236,10 +243,10 @@
       <div class="sec-title">完整内容（解锁后才下发）</div>
       <label>文字内容</label>
       <textarea class="f-body" placeholder="信的正文…"></textarea>
-      <label>影片网址（YouTube / Bilibili / mp4 直链）</label>
-      <input class="f-video" placeholder="https://..."/>
-      <label>图片</label>
-      <div id="lm-image-up"></div>
+      <label>影片（上传 或 贴 YouTube / Bilibili 网址）</label>
+      <div id="lm-video-up"></div>
+      <label>图片（可放多张）</label>
+      <div id="lm-images-up"></div>
       <label>链接</label>
       <input class="f-link" placeholder="https://..."/>
       <label>链接显示文字</label>
@@ -338,19 +345,13 @@
     $("#tab-authors").classList.toggle("hidden", t.dataset.tab!=="authors");
   });
 
-  /* ================= 作者归属：1 作品 = 1 作者 ================= */
-  // 作者 id → 绑定的信件（没有则 undefined）
-  function authorOwner(authorId){
-    return LETTERS.find(L => String(L.author_id) === String(authorId));
+  /* ================= 作者归属：一位作者可以有多个作品 ================= */
+  // 作者 id → 他名下的所有信件
+  function authorWorks(authorId){
+    return LETTERS.filter(L => String(L.author_id) === String(authorId));
   }
-  // 某封信可以选的作者 = 尚未被别人绑走的 + 自己已选的那位
-  function availableAuthors(currentLetterId, currentAuthorId){
-    return AUTHORS.filter(A=>{
-      const owner = authorOwner(A.id);
-      return !owner || String(owner.id) === String(currentLetterId)
-                    || String(A.id) === String(currentAuthorId);
-    });
-  }
+  // 作者下拉不再过滤：同一位作者可以绑多封信
+  function availableAuthors(){ return AUTHORS; }
 
   /* ================= 信件列表 ================= */
   $("#q-letters").oninput = renderLetters;
@@ -460,7 +461,8 @@
   function saveLetterRow(L){
     return rpc("admin_update_letter",{
       p_key:KEY, p_id:L.id,
-      p_title:L.title||"", p_body:L.body||"", p_image:L.image||"", p_video:L.video||"",
+      p_title:L.title||"", p_body:L.body||"", p_image:L.image||"",
+      p_images:(typeof L.images==="string"?L.images:JSON.stringify(L.images||[])), p_video:L.video||"",
       p_link:L.link||"", p_link_text:L.link_text||"",
       p_teaser_text:L.teaser_text||"", p_teaser_image:L.teaser_image||"",
       p_author_id:L.author_id||null, p_slot:L.slot||0,
@@ -480,22 +482,24 @@
     $(".f-slot", m).value = slotToTimeValue(L.slot||0);
 
     // 作者下拉：只列还没被绑走的
-    const list = availableAuthors(L.id, L.author_id);
+    const list = availableAuthors();
     $(".f-author", m).innerHTML = `<option value="">— 未指定作者 —</option>` +
       list.map(a=>`<option value="${a.id}" ${String(L.author_id)===String(a.id)?"selected":""}>${esc(a.name)}</option>`).join("") +
-      (AUTHORS.length && !list.length ? `<option disabled>（所有作者都已绑定其他作品）</option>` : "");
+      (AUTHORS.length ? "" : `<option disabled>（还没有作者，请先到作者页新增）</option>`);
 
     $(".f-title", m).value       = L.title || "";
     $(".f-live", m).checked      = !!L.is_live;
     $(".f-teaser-text", m).value = L.teaser_text || "";
     $(".f-body", m).value        = L.body || "";
-    $(".f-video", m).value       = L.video || "";
+
     $(".f-link", m).value        = L.link || "";
     $(".f-linktext", m).value    = L.link_text || "";
 
     $("#lm-teaser-up").innerHTML = uploadField("teaser-image", L.teaser_image);
-    $("#lm-image-up").innerHTML  = uploadField("image", L.image);
+    $("#lm-video-up").innerHTML  = uploadField("video", L.video, "video");
+    $("#lm-images-up").innerHTML = multiImageField(letterImages(L));
     bindUploads(m);
+    bindMultiImage(m);
 
     m.classList.add("show");
   }
@@ -514,7 +518,8 @@
         p_key:KEY, p_id:L.id,
         p_title:$(".f-title",m).value,
         p_body:$(".f-body",m).value,
-        p_image:$(".f-image",m).value,
+        p_image:(readImages()[0] || ""),
+        p_images:JSON.stringify(readImages()),
         p_video:$(".f-video",m).value,
         p_link:$(".f-link",m).value,
         p_link_text:$(".f-linktext",m).value,
@@ -565,12 +570,12 @@
     }
 
     body.innerHTML = rows.map(A=>{
-      const owner = authorOwner(A.id);
+      const works = authorWorks(A.id);
       return `<tr data-id="${A.id}">
         <td style="font-weight:700">${esc(A.name)}</td>
         <td class="muted">${esc(A.bio)||"—"}</td>
-        <td>${owner
-          ? `<span class="badge on">${esc(owner.title)||"未命名"}</span>`
+        <td>${works.length
+          ? works.map(w=>`<span class="badge on" style="margin:1px 2px 1px 0;display:inline-block">${esc(w.title)||"未命名"}</span>`).join("")
           : `<span class="badge off">未绑定</span>`}</td>
         <td class="c-act"><button class="btn ghost small edit-btn">编辑</button></td>
       </tr>`;
@@ -612,9 +617,9 @@
 
   $("#am-del").onclick = async ()=>{
     const A = editingAuthor; if(!A) return;
-    const owner = authorOwner(A.id);
-    if(!confirm(owner
-      ? `删除「${A.name}」？绑定的《${owner.title||"未命名"}》会变成未绑定。`
+    const works = authorWorks(A.id);
+    if(!confirm(works.length
+      ? `删除「${A.name}」？他名下 ${works.length} 个作品会变成未绑定。`
       : `删除作者「${A.name}」？`)) return;
     try{ await rpc("admin_delete_author",{p_key:KEY,p_id:A.id}); closeModals(); await reloadAll(); toast("已删除"); }
     catch(e){ toast("删除失败"); }
@@ -640,6 +645,7 @@
   ========================================================== */
   const BUCKET  = "letters";
   const MAX_IMG = 15 * 1024 * 1024;
+  const MAX_VID = 10 * 1024 * 1024;   // 客户要求：影片单档 10MB
 
   function isUploaded(url){ return !!url && url.indexOf("/storage/v1/object/public/") > -1; }
   function fileLabel(url){
@@ -652,30 +658,152 @@
     return `${rand}.${ext}`;
   }
 
-  function uploadField(field, value){
+  // kind: "image"（预设）或 "video"
+  function uploadField(field, value, kind){
+    const isVid  = kind === "video";
     const cls    = "f-" + field;
     const uped   = isUploaded(value);
     const linked = !!value && !uped;
+    const accept = isVid ? "video/*" : "image/*";
+    const tip    = isVid
+      ? `拖影片到这里，或<b>点击选择</b><div class="up-sub">最大 10MB · MP4 / WebM / MOV</div>`
+      : `拖图片到这里，或<b>点击选择</b><div class="up-sub">最大 15MB · JPG / PNG / GIF / WebP</div>`;
+    const urlLbl = isVid ? "或：贴影片网址（YouTube / Bilibili / mp4 直链）" : "或：直接贴图片网址";
     return `
-      <div class="up-wrap" data-target="${cls}">
+      <div class="up-wrap" data-target="${cls}" data-kind="${isVid?'video':'image'}">
         <input type="hidden" class="${cls}" value="${esc(value)}"/>
         <div class="up-done" style="${uped?'':'display:none'}">
           <span class="nm">${uped ? esc(fileLabel(value)) : ""}</span>
           <button type="button" class="rm">移除</button>
         </div>
         <div class="up" style="${uped?'display:none':''}">
-          <input type="file" accept="image/*"/>
-          <div class="up-tip">拖图片到这里，或<b>点击选择</b>
-            <div class="up-sub">最大 15MB · JPG / PNG / GIF / WebP</div>
-          </div>
+          <input type="file" accept="${accept}"/>
+          <div class="up-tip">${tip}</div>
           <div class="up-bar"><i></i></div>
         </div>
-        <div class="up-preview">${value ? `<img class="thumb" src="${esc(value)}" alt=""/>` : ""}</div>
+        <div class="up-preview">${value ? mediaPreview(value, isVid) : ""}</div>
         <div class="up-or" style="${uped?'display:none':''}">
-          <label style="margin-top:8px">或：直接贴图片网址</label>
+          <label style="margin-top:8px">${urlLbl}</label>
           <input class="up-url" value="${linked ? esc(value) : ""}" placeholder="https://..."/>
         </div>
       </div>`;
+  }
+
+  function mediaPreview(url, isVid){
+    if(!url) return "";
+    if(isVid && isUploaded(url))
+      return `<video class="thumb" src="${esc(url)}" controls muted playsinline style="max-height:180px"></video>`;
+    if(isVid) return `<div class="muted" style="margin:6px 0">🎬 ${esc(url)}</div>`;
+    return `<img class="thumb" src="${esc(url)}" alt=""/>`;
+  }
+
+  /* ---------- 多图：一个作品可以放多张 ----------
+     存进 letters.images（JSON 阵列）；旧的单图 letters.image 仍相容 */
+  function letterImages(L){
+    let arr = [];
+    if(L.images){
+      try{ arr = typeof L.images === "string" ? JSON.parse(L.images) : L.images; }catch(_){ arr = []; }
+    }
+    if(!Array.isArray(arr)) arr = [];
+    if(!arr.length && L.image) arr = [L.image];      // 旧资料：单张升级成阵列
+    return arr.filter(Boolean);
+  }
+
+  function multiImageField(list){
+    return `
+      <div id="img-list">${list.map(imgRowHTML).join("")}</div>
+      <div class="up" id="img-add">
+        <input type="file" accept="image/*" multiple/>
+        <div class="up-tip">拖图片到这里，或<b>点击选择</b>（可一次选多张）
+          <div class="up-sub">每张最大 15MB · JPG / PNG / GIF / WebP</div>
+        </div>
+        <div class="up-bar"><i></i></div>
+      </div>
+      <div style="margin-top:6px">
+        <label>或：贴图片网址后按「加入」</label>
+        <div class="row">
+          <input id="img-url" placeholder="https://..." style="flex:1;margin-bottom:0"/>
+          <button type="button" class="btn ghost small" id="img-url-add">加入</button>
+        </div>
+      </div>`;
+  }
+
+  function imgRowHTML(url){
+    return `<div class="img-row" data-url="${esc(url)}">
+      <img src="${esc(url)}" alt=""/>
+      <span class="nm">${esc(fileLabel(url))}</span>
+      <button type="button" class="rm">移除</button>
+    </div>`;
+  }
+
+  // 从画面读回目前的图片阵列
+  function readImages(){
+    return $$("#img-list .img-row").map(r=>r.dataset.url);
+  }
+
+  function bindMultiImage(root){
+    const list = $("#img-list", root); if(!list) return;
+    const box  = $("#img-add", root);
+    const file = $('input[type=file]', box);
+    const bar  = $(".up-bar", box), barFill = $(".up-bar i", box);
+
+    function addUrl(u){
+      if(!u) return;
+      list.insertAdjacentHTML("beforeend", imgRowHTML(u));
+      bindRows();
+    }
+    function bindRows(){
+      $$(".img-row .rm", list).forEach(b=> b.onclick = ()=>{
+        const row = b.closest(".img-row");
+        const u = row.dataset.url;
+        row.remove();
+        if(isUploaded(u)){
+          const path = u.split("/storage/v1/object/public/" + BUCKET + "/")[1];
+          if(path) sb.storage.from(BUCKET).remove([decodeURIComponent(path)]).catch(()=>{});
+        }
+      });
+    }
+    bindRows();
+
+    box.onclick = ()=> file.click();
+    box.addEventListener("dragover", e=>{ e.preventDefault(); box.classList.add("over"); });
+    box.addEventListener("dragleave", ()=> box.classList.remove("over"));
+    box.addEventListener("drop", e=>{
+      e.preventDefault(); box.classList.remove("over");
+      uploadMany([...(e.dataTransfer.files||[])]);
+    });
+    file.onchange = ()=>{ uploadMany([...file.files]); file.value=""; };
+
+    $("#img-url-add", root).onclick = ()=>{
+      const inp = $("#img-url", root);
+      const v = inp.value.trim();
+      if(v){ addUrl(v); inp.value=""; toast("已加入，记得点「保存」"); }
+    };
+
+    async function uploadMany(files){
+      const imgs = files.filter(f=>f.type.startsWith("image/"));
+      if(!imgs.length) return;
+      bar.classList.add("on");
+      let done = 0;
+      for(const f of imgs){
+        if(f.size > MAX_IMG){ toast(`「${f.name}」超过 15MB，已跳过`); done++; continue; }
+        try{
+          const path = randomName(f);
+          const { error } = await sb.storage.from(BUCKET)
+            .upload(path, f, { cacheControl:"31536000", upsert:false, contentType:f.type||undefined });
+          if(error) throw error;
+          addUrl(sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl);
+        }catch(e){
+          console.warn(e);
+          toast(String(e.message||e).indexOf("Bucket not found")>-1
+            ? "上传失败：请先在 Supabase 建 letters bucket" : `「${f.name}」上传失败`);
+        }
+        done++;
+        barFill.style.width = Math.round(done/imgs.length*100) + "%";
+      }
+      setTimeout(()=>{ bar.classList.remove("on"); barFill.style.width="0"; }, 500);
+      toast(`已上传 ${imgs.length} 张，记得点「保存」`);
+    }
   }
 
   function bindUploads(root){
@@ -691,6 +819,8 @@
       const preview = $(".up-preview", wrap);
       const urlIn   = $(".up-url", wrap);
       const orBox   = $(".up-or", wrap);
+      const isVid   = wrap.dataset.kind === "video";
+      const maxSize = isVid ? MAX_VID : MAX_IMG;
 
       box.onclick = ()=> file.click();
       box.addEventListener("dragover", e=>{ e.preventDefault(); box.classList.add("over"); });
@@ -705,7 +835,7 @@
         if(isUploaded(hidden.value)) return;
         const v = urlIn.value.trim();
         hidden.value = v;
-        preview.innerHTML = v ? `<img class="thumb" src="${esc(v)}" alt=""/>` : "";
+        preview.innerHTML = v ? mediaPreview(v, isVid) : "";
       };
 
       rmBtn.onclick = async ()=>{
@@ -724,8 +854,9 @@
       };
 
       async function doUpload(f){
-        if(f.size > MAX_IMG){
-          toast(`图片太大（${(f.size/1048576).toFixed(1)}MB），上限 15MB`);
+        if(f.size > maxSize){
+          toast(isVid ? `影片太大（${(f.size/1048576).toFixed(1)}MB），上限 10MB`
+                      : `图片太大（${(f.size/1048576).toFixed(1)}MB），上限 15MB`);
           return;
         }
         bar.classList.add("on"); barFill.style.width = "15%";
@@ -744,7 +875,7 @@
           done.style.display  = "";
           box.style.display   = "none";
           orBox.style.display = "none";
-          preview.innerHTML   = `<img class="thumb" src="${esc(data.publicUrl)}" alt=""/>`;
+          preview.innerHTML   = mediaPreview(data.publicUrl, isVid);
           urlIn.value = "";
 
           barFill.style.width = "100%";
