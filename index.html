@@ -197,8 +197,13 @@
      樱花枝上挂着作品短册，下方是作者名牌。
      点短册 → 垂下红线头；点对作者 → 红线画过去打结，双双化樱花；
      点错 → 红线绷断落下。 */
-  #game-area{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-  #scene{position:relative;padding:6px 12px 10px;min-height:100%;max-width:640px;margin:0 auto;}
+  /* flex 容器：让 #scene 撑满可用高度，卡片少时才能垂直居中 */
+  #game-area{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    display:flex;flex-direction:column;}
+  /* min-height + flex 居中：一关只有 4 对时，卡片在场景里垂直居中，
+     不会顶在上边、下面空一大块 */
+  #scene{position:relative;padding:10px 12px 12px;max-width:640px;margin:0 auto;width:100%;
+    flex:1;display:flex;flex-direction:column;justify-content:center;}
   #string-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;overflow:visible;}
 
   /* 樱花枝 + 挂绳 */
@@ -271,7 +276,9 @@
   .lr-scene{position:relative;padding-left:24px;}
   .trunk-svg{position:absolute;left:3px;top:-6px;height:calc(100% + 12px);width:14px;pointer-events:none;}
   .lr-rows{display:flex;flex-direction:column;gap:9px;}
-  .lr-row{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:center;}
+  /* 作者牌比作品牌略宽（名字长，少截断）；间距收窄留给内容；
+     stretch 让左右两张卡等高，一行看起来是齐的 */
+  .lr-row{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;align-items:stretch;}
   .tag-wrap.lr{position:relative;display:block;transform-origin:-20px 50%;
     animation:lrSway 5s ease-in-out infinite alternate;}
   .lr-row:nth-child(2n)  .tag-wrap.lr{animation-delay:-1.7s;}
@@ -280,7 +287,10 @@
   /* 系在枝上的短绳 */
   .tag-wrap.lr::before{content:"";position:absolute;left:-21px;top:50%;width:21px;height:2px;
     border-radius:2px;background:linear-gradient(90deg,#b09484,#d8c2b4);}
-  .tag-wrap.lr .tag-title{min-height:34px;}
+  /* 撑满整行高度，和右边作者牌齐平 */
+  .tag-wrap.lr{display:flex;}
+  .tag-wrap.lr .tag-card{display:flex;flex-direction:column;width:100%;}
+  .tag-wrap.lr .tag-title{min-height:34px;flex:1;}
   /* 左右布局选中：红线头从右侧探出去，指向作者那边 */
   .tag-wrap.lr.picked .tag-card::after{left:auto;right:-22px;bottom:auto;top:50%;
     width:22px;height:2px;transform-origin:left center;}
@@ -343,7 +353,7 @@
   .cg-btns .btn{padding:11px 18px;font-size:14px;}
 
   /* 作者名牌上的统一头像 */
-  .plaque{display:flex;align-items:center;gap:8px;text-align:left;}
+  .plaque{display:flex;align-items:center;gap:8px;text-align:left;height:100%;}
   .plaque .pav{width:34px;height:34px;border-radius:50%;flex:none;object-fit:cover;
     border:1.5px solid rgba(232,64,79,.25);}
   .plaque .ptext{min-width:0;}
