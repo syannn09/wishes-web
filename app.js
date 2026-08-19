@@ -642,6 +642,7 @@ function showOops(){
   // 有 B 份表情包就放表情包，没有就退回 🥀
   const sticker = nextWrongSticker();
   $("#oops .cg-big").innerHTML = sticker ? stickerHTML(sticker) : "🥀";
+  $("#go-count").textContent = GAME.totalTied;   // 本局累计牵好的红线
   box.classList.add("show");
   kickSticker(box);
   $("#oops-next").onclick = ()=>{

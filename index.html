@@ -328,6 +328,9 @@
     background:rgba(60,40,80,.28);backdrop-filter:blur(2px);padding:14px;}
   #oops.show{display:flex;}
   #oops h4{color:#e8404f;}
+  /* 答错时的计数文案：这一局牵好了几根（数字标红，同旧版） */
+  .cg-tally{margin:12px 0 16px;font-size:14px;color:var(--ink-soft);line-height:1.7;}
+  .cg-tally b{color:#e8404f;font-size:17px;}
 
   /* 答对弹窗：恭喜解锁一根红线 */
   #congrats{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
@@ -432,8 +435,7 @@
       <div id="oops">
         <div class="cg-card">
           <div class="cg-big">🥀</div>
-          <h4>这根牵错啦</h4>
-          <p class="cg-sub">再试试别的组合吧</p>
+          <p class="cg-tally">这一局你牵好了 <b id="go-count">0</b> 根红线</p>
           <div class="cg-btns">
             <button class="btn btn-primary" id="oops-next">继续牵线</button>
           </div>
