@@ -307,14 +307,17 @@
     font-size:17px;font-weight:800;color:var(--magenta);box-shadow:0 10px 30px rgba(120,80,140,.25);
     animation:bannerPop .5s ease;}
   @keyframes bannerPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
-  #game-done,#game-over{position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;
+  #game-done{position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;
     justify-content:center;background:rgba(255,255,255,.94);text-align:center;padding:24px;}
-  #game-done.show,#game-over.show{display:flex;}
-  #game-done .big,#game-over .big{font-size:44px;margin-bottom:10px;}
-  #game-done h4,#game-over h4{margin:0 0 8px;font-size:20px;color:var(--magenta);}
-  #game-done p,#game-over p{margin:0 0 18px;font-size:14px;color:var(--ink-soft);line-height:1.7;}
-  #game-over h4{color:#e8404f;}
-  #game-over b{color:#e8404f;font-size:17px;}
+  #game-done.show{display:flex;}
+  #game-done .big{font-size:44px;margin-bottom:10px;}
+  #game-done h4{margin:0 0 8px;font-size:20px;color:var(--magenta);}
+  #game-done p{margin:0 0 18px;font-size:14px;color:var(--ink-soft);line-height:1.7;}
+  /* 答错弹窗：和答对弹窗同一张卡片，只有标题是红的 */
+  #oops{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
+    background:rgba(60,40,80,.28);backdrop-filter:blur(2px);padding:20px;}
+  #oops.show{display:flex;}
+  #oops h4{color:#e8404f;}
 
   /* 答对弹窗：恭喜解锁一根红线 */
   #congrats{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
@@ -328,7 +331,7 @@
     box-shadow:0 8px 22px rgba(120,80,140,.25);
     animation:stickerPop .45s cubic-bezier(.3,1.5,.5,1);}
   @keyframes stickerPop{from{transform:scale(.4) rotate(-8deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
-  #game-over .sticker{margin-bottom:4px;}
+  #oops .sticker{margin-bottom:4px;}
   .cg-card h4{margin:0 0 8px;font-size:17px;color:#e8404f;}
   .cg-card .cg-work{margin:10px 0 0;font-size:17px;font-weight:800;color:var(--ink);}
   .cg-card .cg-sub{margin:4px 0 16px;font-size:12px;color:var(--ink-soft);}
@@ -407,16 +410,21 @@
           </div>
         </div>
 
-        <!-- 答错：红线断了，本局结束 -->
-        <div id="game-over">
-          <div class="big">🥀</div>
-          <p>这一局你牵好了 <b id="go-count">0</b> 根红线</p>
-          <button class="btn btn-primary" id="go-restart">再牵一次</button>
+        <!-- 答错：红线断了，弹一下继续牵（不结束、不用重连对的） -->
+        <div id="oops">
+          <div class="cg-card">
+            <div class="cg-big">🥀</div>
+            <h4>这根牵错啦</h4>
+            <p class="cg-sub">再试试别的组合吧</p>
+            <div class="cg-btns">
+              <button class="btn btn-primary" id="oops-next">继续牵线</button>
+            </div>
+          </div>
         </div>
 
         <div id="game-done">
           <div class="big">🌸</div>
-          <h4>48 根红线，全部牵好！</h4>
+          <h4>52 根红线，全部牵好！</h4>
           <p>你认出了每一位创作者<br>谢谢他们为 824 做的一切</p>
           <button class="btn btn-primary" id="game-restart">再玩一次</button>
         </div>

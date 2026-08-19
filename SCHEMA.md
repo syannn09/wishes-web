@@ -17,7 +17,7 @@
 
 ## 1. 新增 `authors` 表
 
-目前的用法是 **1 作者 = 1 作品**（48 位创作者 × 48 封信）。
+目前的用法是 **1 作者 = 1 作品**（52 位创作者 × 52 封信）。
 表结构本身支持 1 对多（多封信指向同一作者），以后需要不用改表。
 
 ```sql
@@ -44,7 +44,7 @@ alter table letters add column if not exists author_id     bigint references aut
 alter table letters add column if not exists teaser_text   text default '';   -- 预告文字（未解锁时显示）
 alter table letters add column if not exists teaser_image  text default '';   -- 预告图（前端会打码模糊）
 alter table letters add column if not exists video         text default '';   -- 视频网址（mp4 直链 或 YouTube/Bilibili 嵌入链接）
-alter table letters add column if not exists slot          int default 0;     -- 解锁槽位 0..47，对应 00:00 ~ 23:30
+alter table letters add column if not exists slot          int default 0;     -- 解锁槽位 0..51，对应 00:00 ~ 23:30
 
 create index if not exists letters_slot_idx on letters(slot);
 ```
@@ -79,7 +79,7 @@ create index if not exists letters_slot_idx on letters(slot);
 |---|---|---|
 | **823 及之前** | `-1` | 全部只有预告；牵红线只弹表情包，不解锁任何内容 |
 | **824** | `小时×60 + 分钟` | 按客户时间表逐封开启（第 1 封 00:24） |
-| **825 及之后** | `1441` | 48 封全开，永久保留 |
+| **825 及之后** | `1441` | 52 封全开，永久保留 |
 
 > ⚠️ 这一段要和前端 `app.js` 的 `currentPhase()` 保持一致。
 > 前端控制「显示什么」，服务端控制「下发什么」，两边都要对。
@@ -115,7 +115,7 @@ begin
   -- 三个阶段（slot = 当天第几分钟开启）：
   --   823 及之前 → -1（到点解锁全关，只有预告）
   --   824        → 当前分钟数，按客户时间表逐封开
-  --   825 及之后 → 1441（48 封全开）
+  --   825 及之后 → 1441（52 封全开）
   max_slot := case
     when m = 8 and d = 24 then (extract(hour from cn)::int * 60
                                 + extract(minute from cn)::int)
@@ -270,23 +270,25 @@ end; $$;
 grant execute on function admin_update_letter(text,bigint,text,text,text,text,text,text,text,text,bigint,int,boolean,int) to anon;
 ```
 
-## 7. 一次性初始化 48 个槽位
+## 7. 一次性初始化 52 个槽位
 
-后台「初始化 48 封」按钮会调用这个 RPC（只补缺，不动已有的信）：
+后台「初始化 52 封」按钮会调用这个 RPC（只补缺，不动已有的信）：
 
 ```sql
 create or replace function admin_init_slots(p_key text)
 returns void
 language plpgsql security definer set search_path = public as $$
 declare
-  -- 客户时间表：0:24, 1:09, 1:30 … 23:30（存为当天第几分钟）
+  -- 时间表：0:24, 0:47, 1:09 … 23:30（存为当天第几分钟）
+  -- 其中 47 / 340 / 772 / 1060 是 48→52 时新补的 4 个时段
   schedule int[] := array[
-      24,   69,   90,  120,  150,  180,  210,  240,
-     261,  300,  320,  360,  390,  420,  450,  480,
-     504,  540,  570,  600,  630,  660,  690,  720,
-     750,  794,  810,  840,  870,  900,  930,  960,
-     990, 1020, 1040, 1080, 1110, 1140, 1170, 1200,
-    1224, 1260, 1290, 1320, 1350, 1364, 1380, 1410];
+      24,   47,   69,   90,  120,  150,  180,  210,
+     240,  261,  300,  320,  340,  360,  390,  420,
+     450,  480,  504,  540,  570,  600,  630,  660,
+     690,  720,  750,  772,  794,  810,  840,  870,
+     900,  930,  960,  990, 1020, 1040, 1060, 1080,
+    1110, 1140, 1170, 1200, 1224, 1260, 1290, 1320,
+    1350, 1364, 1380, 1410];
   t int;
 begin
   perform _check_key(p_key);
@@ -311,12 +313,13 @@ grant execute on function admin_init_slots(text) to anon;
 with sched as (
   select t, row_number() over () as rn
   from unnest(array[
-      24,   69,   90,  120,  150,  180,  210,  240,
-     261,  300,  320,  360,  390,  420,  450,  480,
-     504,  540,  570,  600,  630,  660,  690,  720,
-     750,  794,  810,  840,  870,  900,  930,  960,
-     990, 1020, 1040, 1080, 1110, 1140, 1170, 1200,
-    1224, 1260, 1290, 1320, 1350, 1364, 1380, 1410]) as t
+      24,   47,   69,   90,  120,  150,  180,  210,
+     240,  261,  300,  320,  340,  360,  390,  420,
+     450,  480,  504,  540,  570,  600,  630,  660,
+     690,  720,  750,  772,  794,  810,  840,  870,
+     900,  930,  960,  990, 1020, 1040, 1060, 1080,
+    1110, 1140, 1170, 1200, 1224, 1260, 1290, 1320,
+    1350, 1364, 1380, 1410]) as t
 ),
 ordered as (
   select id, row_number() over (order by slot, id) as rn from letters

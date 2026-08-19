@@ -154,7 +154,7 @@
       <div class="card">
         <div class="row" style="margin-bottom:12px;">
           <button class="btn small" id="addBtn">＋ 新增一封信</button>
-          <button class="btn ghost small" id="initBtn">初始化 48 封</button>
+          <button class="btn ghost small" id="initBtn">初始化 52 封</button>
           <button class="btn ghost small" id="reloadBtn">刷新</button>
           <button class="btn ghost small" id="previewBtn">预览粉丝页</button>
           <button class="btn ghost small" id="logoutBtn" style="margin-left:auto;">退出</button>
@@ -380,7 +380,7 @@
 
     if(!rows.length){
       body.innerHTML = `<tr class="empty-row"><td colspan="6">${
-        LETTERS.length ? "没有符合搜索的信件" : "还没有信，点上面「新增一封信」或「初始化 48 封」开始。"
+        LETTERS.length ? "没有符合搜索的信件" : "还没有信，点上面「新增一封信」或「初始化 52 封」开始。"
       }</td></tr>`;
       return;
     }
@@ -550,7 +550,7 @@
   };
   $("#initBtn").onclick=async ()=>{
     if(!confirm("会按客户时间表（0:24、1:09 … 23:30）补齐缺少的信（已有的不动）。继续？")) return;
-    try{ await rpc("admin_init_slots",{p_key:KEY}); await reloadAll(); toast("已按时间表初始化 48 封"); }
+    try{ await rpc("admin_init_slots",{p_key:KEY}); await reloadAll(); toast("已按时间表初始化 52 封"); }
     catch(e){ toast("初始化失败：请先在 Supabase 建好 admin_init_slots"); }
   };
 

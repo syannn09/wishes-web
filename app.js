@@ -1,6 +1,6 @@
 /* =========================================================
    树信归期 v2 · 主逻辑
-   - 48 封信，824 当天按客户时间表逐封解锁（首封 00:24）
+   - 52 封信，824 当天按客户时间表逐封解锁（首封 00:24）
    - 未解锁只显示预告，完整内容由服务端 RPC 控制不下发
    - 物料 × 作者 牵红线（不储存进度）
 ========================================================= */
@@ -13,8 +13,8 @@ const CHINA_OFFSET = 8*60;
 const QS = new URLSearchParams(location.search);
 const PREVIEW_KEY  = QS.get("preview") || "";           // ?preview=<管理密钥> → 全解锁
 const DEMO         = QS.has("demo");                     // ?demo=1  → 用本地假数据，不连后台
-// ?slot=N（demo 专用）：假装「前 N+1 封已解锁」，例如 slot=0 → 1 封、slot=47 → 48 封全开
-const FAKE_SLOT    = QS.has("slot") ? Math.max(-1, Math.min(47, parseInt(QS.get("slot")))) : null;
+// ?slot=N（demo 专用）：假装「前 N+1 封已解锁」，例如 slot=0 → 1 封、slot=51 → 52 封全开
+const FAKE_SLOT    = QS.has("slot") ? Math.max(-1, Math.min(51, parseInt(QS.get("slot")))) : null;
 // ?phase=teaser|reveal|archive 强制某个阶段，给客户预览三天的样子
 const FORCE_PHASE  = ["teaser","reveal","archive"].includes(QS.get("phase")) ? QS.get("phase") : null;
 // 牵红线布局：默认左右（左作品右作者）；?layout=td 可切回上下布局
@@ -30,7 +30,7 @@ function isAug24China(){ const c = nowChina(); return c.getMonth()===7 && c.getD
 /* ---------- 三个阶段 ----------
    823 及之前 = "teaser"  预告 + 牵红线，没有完整内容
    824        = "reveal"  按时间表逐封挂上树，不显示预告信封，没有牵红线
-   825 及之后 = "archive" 48 封全开，没有牵红线
+   825 及之后 = "archive" 52 封全开，没有牵红线
 */
 function currentPhase(){
   if(FORCE_PHASE) return FORCE_PHASE;
@@ -108,7 +108,7 @@ if(PREVIEW_KEY) document.body.classList.add("is-preview");
 /* =========================================================
    信封网格
 ========================================================= */
-let LETTERS = [];   // 服务端返回的 48 封（含解锁状态）
+let LETTERS = [];   // 服务端返回的 52 封（含解锁状态）
 
 function envelopeSVG(){
   return `<svg viewBox="0 0 80 60" xmlns="${SVG_NS}">
@@ -270,13 +270,14 @@ function openLetter(L){
 
 /* =========================================================
    牵红线 · 分关消除式（不储存进度）
-   1 作者 = 1 作品，48 对拆成每关 6 对。
+   1 作者 = 1 作品，52 对拆成每关 4 对。
    点一个作品 → 点它的作者：对了两张卡化成樱花瓣飘走，
-   错了抖一下。全程没有连线，一屏永远只有 12 张卡。
+   错了红线绷断、弹一下「牵错啦」，两张卡放回去继续牵 ——
+   答错不结束本局，也不用把错的重新连回对的，直到牵完为止。
 ========================================================= */
-const PAIRS_PER_ROUND = 6;
+const PAIRS_PER_ROUND = 4;
 const GAME = { rounds:[], round:0, matchedInRound:0, picked:null, tied:[], lock:false,
-               totalTied:0, over:false };
+               totalTied:0 };
 
 function shuffle(a){
   const r = a.slice();
@@ -299,13 +300,12 @@ function buildGameData(){
   GAME.round = 0;
   GAME.matchedInRound = 0;
   GAME.picked = null;
-  GAME.totalTied = 0;   // 本局累计牵好的红线（游戏结束画面用）
-  GAME.over = false;
+  GAME.totalTied = 0;   // 本局累计牵好的红线
 }
 
 function renderGame(){
   $("#game-done").classList.remove("show");
-  $("#game-over").classList.remove("show");
+  $("#oops").classList.remove("show");
   $("#congrats").classList.remove("show");
   renderRound();
 }
@@ -417,7 +417,7 @@ function updateScore(){
 
 /* ---- 点选：短册和名牌都能先点，点另一边就判定 ---- */
 function onCardTap(el){
-  if(GAME.lock || GAME.over) return;
+  if(GAME.lock) return;
   if(el.classList.contains("tied")) return;   // 已经牵好的不再响应
 
   if(GAME.picked === el){                         // 再点一次 = 收回红线
@@ -525,7 +525,7 @@ function tieString(tag, plaque){
 }
 
 /* ---- 表情包：答对抽 A 份、答错抽 B 份 ----
-   抽签袋式随机：一轮抽完才重复，48 题不会连着看到同一个。 */
+   抽签袋式随机：一轮抽完才重复，52 题不会连着看到同一个。 */
 function makeStickerBag(list){
   let bag = [];
   let last = null;
@@ -614,10 +614,11 @@ function redrawTied(){
 }
 addEventListener("resize", redrawTied);
 
-/* ---- 牵错：线绷断 → 本局结束（可重新开始，关卡重新随机） ---- */
+/* ---- 牵错：线绷断 → 弹「牵错啦」表情包 → 两张卡放回去，继续牵 ----
+   答错不结束本局，也不锁定这两张卡：玩家可以随便再挑别的组合，
+   一直牵到本关 4 对全对为止。 */
 function snapString(tag, plaque){
   GAME.lock = true;
-  GAME.over = true;
   const { path } = drawRedString(tag, plaque);
   setTimeout(()=>{
     path.classList.add("falls");                 // 整条线松脱下坠
@@ -626,16 +627,23 @@ function snapString(tag, plaque){
   setTimeout(()=>{
     path.remove();
     tag.classList.remove("shakeit"); plaque.classList.remove("shakeit");
-    // 游戏结束画面：告诉玩家这局牵好了几根，可以重新来（重新随机）
-    $("#go-count").textContent = GAME.totalTied;
-    // 有 B 份表情包就放表情包，没有就退回 🥀
-    const sticker = nextWrongSticker();
-    $("#game-over .big").innerHTML = sticker ? stickerHTML(sticker) : "🥀";
-    $("#game-over").classList.add("show");
-    kickSticker($("#game-over"));
+    showOops();                                  // GAME.lock 保持，直到玩家关掉表情包
   }, 900);
 }
-$("#go-restart") && ($("#go-restart").onclick = ()=>{ buildGameData(); renderGame(); });
+
+/* ---- 答错弹窗：只弹表情包，关掉就继续牵 ---- */
+function showOops(){
+  const box = $("#oops");
+  // 有 B 份表情包就放表情包，没有就退回 🥀
+  const sticker = nextWrongSticker();
+  $("#oops .cg-big").innerHTML = sticker ? stickerHTML(sticker) : "🥀";
+  box.classList.add("show");
+  kickSticker(box);
+  $("#oops-next").onclick = ()=>{
+    box.classList.remove("show");
+    GAME.lock = false;      // 解锁继续玩，本关进度、已牵好的红线都保留
+  };
+}
 
 // 在卡片位置撒一把樱花瓣
 function burstPetals(el){
@@ -695,11 +703,11 @@ function applyPhase(){
   $("#subtitle").textContent =
     phase === "teaser"  ? "点击信封 开启洋灵的平行时空" :
     phase === "reveal"  ? "信封按时间表，一封一封挂上树" :
-                          "48 封信，全部在这里了";
+                          "52 封信，全部在这里了";
 }
 
 /* =========================================================
-   相识计天：从 2016-08-24（中国时间）数到现在
+   相遇计天：从 2016-08-24（中国时间）数到现在
 ========================================================= */
 function daysSinceMet(){
   // nowChina() 和这里的 met 都是「中国墙上时间」同一坐标系，直接相减
@@ -711,17 +719,17 @@ function updateCountdown(){
   const phase = currentPhase();
 
   if(phase === "archive"){
-    $("#countdown").textContent = `🌸 相识 ${daysSinceMet()} 天 · 感谢每一位创作者`;
+    $("#countdown").textContent = `🌸 相遇 ${daysSinceMet()} 天 · 感谢每一位创作者`;
     return;
   }
   if(phase === "reveal"){
     const opened = LETTERS.filter(L => L.unlocked).length;
-    const total  = LETTERS.length || 48;
+    const total  = LETTERS.length || 52;
     $("#countdown").textContent = `🎉 824 快乐 · 已开启 ${opened} / ${total} 封`;
     return;
   }
-  // teaser：不倒数了，改成从 2016.8.24 数「相识多少天」
-  $("#countdown").textContent = `相识 ${daysSinceMet()} 天 🌸`;
+  // teaser：不倒数了，改成从 2016.8.24 数「相遇多少天」
+  $("#countdown").textContent = `相遇 ${daysSinceMet()} 天 🌸`;
 }
 
 /* =========================================================
