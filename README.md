@@ -86,7 +86,7 @@ https://www.yanglingforever.space/demo.html
 | `index.html?demo=1&phase=reveal&slot=17` | 演示 824 中途（18 封已开） |
 | `index.html?preview=<管理密钥>` | **真实数据 + 全部解锁**，给客户验收内容用 |
 
-`?phase=` 可以和 `?demo=1` 组合。`?slot=N`（0~51）= 假装前 N+1 封已开，只在 `demo + reveal` 下生效。
+`?phase=` 可以和 `?demo=1` 组合。`?slot=N` = 假装前 N+1 封已开（超出总数按总数算），只在 `demo + reveal` 下生效。
 后台「预览粉丝页」按钮走的是 `?preview=`。
 
 本地起服务：

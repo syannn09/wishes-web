@@ -14,7 +14,8 @@ const QS = new URLSearchParams(location.search);
 const PREVIEW_KEY  = QS.get("preview") || "";           // ?preview=<管理密钥> → 全解锁
 const DEMO         = QS.has("demo");                     // ?demo=1  → 用本地假数据，不连后台
 // ?slot=N（demo 专用）：假装「前 N+1 封已解锁」，例如 slot=0 → 1 封、slot=51 → 52 封全开
-const FAKE_SLOT    = QS.has("slot") ? Math.max(-1, Math.min(51, parseInt(QS.get("slot")))) : null;
+// 不写死上限，跟着实际信件数走（超出的在 loadLetters 里按实际数量夹住）
+const FAKE_SLOT    = QS.has("slot") ? Math.max(-1, parseInt(QS.get("slot")) || 0) : null;
 // ?phase=teaser|reveal|archive 强制某个阶段，给客户预览三天的样子
 const FORCE_PHASE  = ["teaser","reveal","archive"].includes(QS.get("phase")) ? QS.get("phase") : null;
 // 牵红线布局：默认左右（左作品右作者）；?layout=td 可切回上下布局
@@ -160,7 +161,7 @@ async function loadLetters(){
     let unlockedCount;
     if(phase === "teaser")       unlockedCount = 0;
     else if(phase === "archive") unlockedCount = sorted.length;
-    else if(FAKE_SLOT !== null)  unlockedCount = FAKE_SLOT + 1;
+    else if(FAKE_SLOT !== null)  unlockedCount = Math.min(FAKE_SLOT + 1, sorted.length);
     else                         unlockedCount = sorted.filter(L => L.slot <= currentSlot()).length;
     LETTERS = sorted.map((L,i) => ({ ...L, unlocked: i < unlockedCount }));
     renderGrid();
