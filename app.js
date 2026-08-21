@@ -108,10 +108,9 @@ if(PREVIEW_KEY) document.body.classList.add("is-preview");
 /* =========================================================
    信封网格
 ========================================================= */
-// 封顶 52 封：后台万一建多了（历史数据里有不在时间表上的信），
-// 前台只取时间最早的 52 封，保证文案里的「52 封」永远对得上。
-const MAX_LETTERS = 52;
-let LETTERS = [];   // 服务端返回的信（按 slot 升序、最多 52 封，含解锁状态）
+// 上限交给后台把关（时间表就 52 个时段，占满就不能再新增），
+// 前台不截断：后台有多少封就显示多少封。
+let LETTERS = [];   // 服务端返回的信（按 slot 升序，含解锁状态）
 
 function envelopeSVG(){
   return `<svg viewBox="0 0 80 60" xmlns="${SVG_NS}">
@@ -157,8 +156,7 @@ async function loadLetters(){
   if(DEMO && window.DEMO_DATA){
     const phase = currentPhase();
     // 预告期一封都不开；825 全开；824 按时间表开（?slot=N 假装前 N+1 封已开）
-    const sorted = window.DEMO_DATA.letters.slice()
-                     .sort((a,b)=>a.slot-b.slot).slice(0, MAX_LETTERS);
+    const sorted = window.DEMO_DATA.letters.slice().sort((a,b)=>a.slot-b.slot);
     let unlockedCount;
     if(phase === "teaser")       unlockedCount = 0;
     else if(phase === "archive") unlockedCount = sorted.length;
@@ -174,8 +172,7 @@ async function loadLetters(){
     const args = PREVIEW_KEY ? { p_key: PREVIEW_KEY } : {};
     const { data, error } = await sb.rpc(fn, args);
     if(error) throw error;
-    // RPC 已按 slot 升序返回；多于 52 封时只留最早的 52 封
-    LETTERS = (data || []).slice(0, MAX_LETTERS);
+    LETTERS = data || [];
   }catch(e){
     console.warn("loadLetters", e);
     if(PREVIEW_KEY) toast("预览密钥错误");
@@ -730,7 +727,7 @@ function updateCountdown(){
   }
   if(phase === "reveal"){
     const opened = LETTERS.filter(L => L.unlocked).length;
-    const total  = LETTERS.length || MAX_LETTERS;
+    const total  = LETTERS.length || 52;
     $("#countdown").textContent = `🎉 824 快乐 · 已开启 ${opened} / ${total} 封`;
     return;
   }
