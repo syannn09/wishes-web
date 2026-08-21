@@ -216,6 +216,17 @@ function letterImages(L){
   return arr.filter(Boolean);
 }
 
+// 一封信的影片：新的 videos 阵列优先，没有就退回旧的单支 video（和图片同一套路）
+function letterVideos(L){
+  let arr = [];
+  if(L.videos){
+    try{ arr = typeof L.videos === "string" ? JSON.parse(L.videos) : L.videos; }catch(_){ arr = []; }
+  }
+  if(!Array.isArray(arr)) arr = [];
+  if(!arr.length && L.video) arr = [L.video];
+  return arr.filter(Boolean);
+}
+
 function videoBlock(url){
   if(!url) return "";
   const u = url.trim();
@@ -242,7 +253,7 @@ function openLetter(L){
   if(L.unlocked){
     paper.innerHTML = head
       + (L.body  ? `<div class="sheet-body">${escapeHtml(L.body)}</div>` : "")
-      + videoBlock(L.video)
+      + letterVideos(L).map(u => videoBlock(u)).join("")
       + letterImages(L).map(u=>`<img class="sheet-media" src="${escapeHtml(u)}" alt="" loading="lazy">`).join("")
       + (L.link  ? `<a class="sheet-link" href="${escapeHtml(L.link)}" target="_blank" rel="noopener">${escapeHtml(L.link_text || "点击查看")}</a>` : "")
       + authorBlock(L);

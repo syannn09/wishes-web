@@ -97,7 +97,8 @@ returns table (
   id bigint, slot int, title text,
   unlocked boolean,
   teaser_text text, teaser_image text,
-  body text, image text, video text, link text, link_text text,
+  body text, image text, images jsonb, video text, videos jsonb,
+  link text, link_text text,
   author_id bigint, author_name text, author_avatar text, author_bio text
 )
 language plpgsql
@@ -130,7 +131,9 @@ begin
     L.teaser_text, L.teaser_image,
     case when L.slot <= max_slot then L.body      else '' end,
     case when L.slot <= max_slot then L.image     else '' end,
+    case when L.slot <= max_slot then coalesce(L.images,'[]'::jsonb) else '[]'::jsonb end,
     case when L.slot <= max_slot then L.video     else '' end,
+    case when L.slot <= max_slot then coalesce(L.videos,'[]'::jsonb) else '[]'::jsonb end,
     case when L.slot <= max_slot then L.link      else '' end,
     case when L.slot <= max_slot then L.link_text else '' end,
     -- 作者信息「永远下发」：823 的牵红线要靠它配对，
@@ -154,7 +157,8 @@ returns table (
   id bigint, slot int, title text,
   unlocked boolean,
   teaser_text text, teaser_image text,
-  body text, image text, video text, link text, link_text text,
+  body text, image text, images jsonb, video text, videos jsonb,
+  link text, link_text text,
   author_id bigint, author_name text, author_avatar text, author_bio text
 )
 language plpgsql
@@ -168,7 +172,9 @@ begin
   return query
   select L.id, L.slot, L.title, true,
          L.teaser_text, L.teaser_image,
-         L.body, L.image, L.video, L.link, L.link_text,
+         L.body, L.image, coalesce(L.images,'[]'::jsonb),
+         L.video, coalesce(L.videos,'[]'::jsonb),
+         L.link, L.link_text,
          L.author_id, A.name, A.avatar, A.bio
   from letters L
   left join authors A on A.id = L.author_id
@@ -238,16 +244,32 @@ grant execute on function admin_update_author(text,bigint,text,text,text,int) to
 grant execute on function admin_delete_author(text,bigint) to anon;
 ```
 
-## 6. 现有 `admin_update_letter` 需要扩参
+## 6. `admin_update_letter`（多图 + 多影片）
 
-现有签名缺少新字段，需要重建（注意：改签名要先 drop）：
+一封信可以放**多张图**和**多支影片**：存进 `letters.images` / `letters.videos`
+两个 JSON 阵列；旧的单张 `image` / 单支 `video` 仍保留、仍相容
+（前台读阵列，阵列空就退回旧栏位）。
+
+先加两个栏位：
 
 ```sql
-drop function if exists admin_update_letter(text,bigint,text,text,text,text,text,boolean,int);
+alter table letters add column if not exists images  jsonb default '[]'::jsonb;
+alter table letters add column if not exists videos  jsonb default '[]'::jsonb;
+```
+
+改签名要先 drop 旧的（参数个数变了）：
+
+```sql
+-- 旧签名（14 参，无 p_images/p_videos）
+drop function if exists admin_update_letter(text,bigint,text,text,text,text,text,text,text,text,bigint,int,boolean,int);
+-- 加过多图之后的签名（15 参，有 p_images 无 p_videos）
+drop function if exists admin_update_letter(text,bigint,text,text,text,text,text,text,text,text,text,bigint,int,boolean,int);
 
 create or replace function admin_update_letter(
   p_key text, p_id bigint,
-  p_title text, p_body text, p_image text, p_video text,
+  p_title text, p_body text,
+  p_image text, p_images text,
+  p_video text, p_videos text,
   p_link text, p_link_text text,
   p_teaser_text text, p_teaser_image text,
   p_author_id bigint, p_slot int,
@@ -259,7 +281,9 @@ begin
     raise exception 'bad key';
   end if;
   update letters set
-    title=p_title, body=p_body, image=p_image, video=p_video,
+    title=p_title, body=p_body,
+    image=p_image,  images=coalesce(nullif(p_images,'')::jsonb, '[]'::jsonb),
+    video=p_video,  videos=coalesce(nullif(p_videos,'')::jsonb, '[]'::jsonb),
     link=p_link, link_text=p_link_text,
     teaser_text=p_teaser_text, teaser_image=p_teaser_image,
     author_id=p_author_id, slot=p_slot,
@@ -267,8 +291,11 @@ begin
   where id=p_id;
 end; $$;
 
-grant execute on function admin_update_letter(text,bigint,text,text,text,text,text,text,text,text,bigint,int,boolean,int) to anon;
+grant execute on function admin_update_letter(text,bigint,text,text,text,text,text,text,text,text,text,text,bigint,int,boolean,int) to anon;
 ```
+
+⚠️ `public_get_letters` / `preview_get_letters` 的 returns table 也要加
+`images jsonb, videos jsonb` 两栏并一起 select，否则前台读不到阵列。
 
 ## 7. 槽位管理 RPC（初始化 / 新增一封）
 

@@ -121,6 +121,10 @@
   .img-row{display:flex;align-items:center;gap:9px;margin-bottom:8px;padding:7px 9px;
     background:#f4fbff;border:1px solid #bfe6f3;border-radius:11px;}
   .img-row img{width:46px;height:46px;object-fit:cover;border-radius:8px;flex:none;background:#fff;}
+  /* 影片行：上传的放缩略图，外链（YouTube/B站）没法取帧，放一个 🎬 占位 */
+  .img-row video{width:46px;height:46px;object-fit:cover;border-radius:8px;flex:none;background:#000;}
+  .img-row .vlink{width:46px;height:46px;border-radius:8px;flex:none;background:#f2f4f8;
+    display:flex;align-items:center;justify-content:center;font-size:20px;}
   .img-row .nm{font-size:12px;color:#5a7;word-break:break-all;flex:1;min-width:0;}
   .img-row .rm{border:none;background:#f4f4f6;color:#e0356b;border-radius:8px;
     padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;flex:none;}
@@ -463,6 +467,7 @@
       p_key:KEY, p_id:L.id,
       p_title:L.title||"", p_body:L.body||"", p_image:L.image||"",
       p_images:(typeof L.images==="string"?L.images:JSON.stringify(L.images||[])), p_video:L.video||"",
+      p_videos:(typeof L.videos==="string"?L.videos:JSON.stringify(L.videos||[])),
       p_link:L.link||"", p_link_text:L.link_text||"",
       p_teaser_text:L.teaser_text||"", p_teaser_image:L.teaser_image||"",
       p_author_id:L.author_id||null, p_slot:L.slot||0,
@@ -496,10 +501,11 @@
     $(".f-linktext", m).value    = L.link_text || "";
 
     $("#lm-teaser-up").innerHTML = uploadField("teaser-image", L.teaser_image);
-    $("#lm-video-up").innerHTML  = uploadField("video", L.video, "video");
-    $("#lm-images-up").innerHTML = multiImageField(letterImages(L));
+    $("#lm-video-up").innerHTML  = multiMediaField(letterVideos(L), "video");
+    $("#lm-images-up").innerHTML = multiMediaField(letterImages(L), "image");
     bindUploads(m);
     bindMultiImage(m);
+    bindMultiVideo(m);
 
     m.classList.add("show");
   }
@@ -520,7 +526,8 @@
         p_body:$(".f-body",m).value,
         p_image:(readImages()[0] || ""),
         p_images:JSON.stringify(readImages()),
-        p_video:$(".f-video",m).value,
+        p_video:(readVideos()[0] || ""),        // 旧栏位：留第一支，前台旧版仍能播
+        p_videos:JSON.stringify(readVideos()),
         p_link:$(".f-link",m).value,
         p_link_text:$(".f-linktext",m).value,
         p_teaser_text:$(".f-teaser-text",m).value,
@@ -709,47 +716,91 @@
     return arr.filter(Boolean);
   }
 
-  function multiImageField(list){
+  /* 多影片：存进 letters.videos（JSON 阵列）；旧的单支 letters.video 仍相容 */
+  function letterVideos(L){
+    let arr = [];
+    if(L.videos){
+      try{ arr = typeof L.videos === "string" ? JSON.parse(L.videos) : L.videos; }catch(_){ arr = []; }
+    }
+    if(!Array.isArray(arr)) arr = [];
+    if(!arr.length && L.video) arr = [L.video];      // 旧资料：单支升级成阵列
+    return arr.filter(Boolean);
+  }
+
+  /* 多图和多影片共用同一套组件，靠 kind 区分（"image" / "video"）。
+     每种各自有一组 id：img-list/img-add/... 与 vid-list/vid-add/... */
+  const MEDIA = {
+    image: { p:"img", accept:"image/*",
+             tip:'拖图片到这里，或<b>点击选择</b>（可一次选多张）',
+             sub:"每张最大 15MB · JPG / PNG / GIF / WebP",
+             urlLbl:"或：贴图片网址后按「加入」" },
+    video: { p:"vid", accept:"video/*",
+             tip:'拖影片到这里，或<b>点击选择</b>（可一次选多支）',
+             sub:"每支最大 10MB · MP4 / WebM / MOV，或贴 YouTube / Bilibili 网址",
+             urlLbl:"或：贴影片网址（YouTube / Bilibili / mp4 直链）后按「加入」" }
+  };
+
+  function multiMediaField(list, kind){
+    const c = MEDIA[kind], p = c.p;
     return `
-      <div id="img-list">${list.map(imgRowHTML).join("")}</div>
-      <div class="up" id="img-add">
-        <input type="file" accept="image/*" multiple/>
-        <div class="up-tip">拖图片到这里，或<b>点击选择</b>（可一次选多张）
-          <div class="up-sub">每张最大 15MB · JPG / PNG / GIF / WebP</div>
+      <div id="${p}-list" data-kind="${kind}">${list.map(u=>mediaRowHTML(u,kind)).join("")}</div>
+      <div class="up" id="${p}-add">
+        <input type="file" accept="${c.accept}" multiple/>
+        <div class="up-tip">${c.tip}
+          <div class="up-sub">${c.sub}</div>
         </div>
         <div class="up-bar"><i></i></div>
       </div>
       <div style="margin-top:6px">
-        <label>或：贴图片网址后按「加入」</label>
+        <label>${c.urlLbl}</label>
         <div class="row">
-          <input id="img-url" placeholder="https://..." style="flex:1;margin-bottom:0"/>
-          <button type="button" class="btn ghost small" id="img-url-add">加入</button>
+          <input id="${p}-url" placeholder="https://..." style="flex:1;margin-bottom:0"/>
+          <button type="button" class="btn ghost small" id="${p}-url-add">加入</button>
         </div>
       </div>`;
   }
+  // 保留旧名字，其他地方还在用
+  function multiImageField(list){ return multiMediaField(list, "image"); }
 
-  function imgRowHTML(url){
+  function mediaRowHTML(url, kind){
+    const thumb = kind === "video"
+      ? (isUploaded(url)
+          ? `<video src="${esc(url)}" muted playsinline preload="metadata"></video>`
+          : `<span class="vlink">🎬</span>`)
+      : `<img src="${esc(url)}" alt=""/>`;
     return `<div class="img-row" data-url="${esc(url)}">
-      <img src="${esc(url)}" alt=""/>
+      ${thumb}
       <span class="nm">${esc(fileLabel(url))}</span>
       <button type="button" class="rm">移除</button>
     </div>`;
   }
+  function imgRowHTML(url){ return mediaRowHTML(url, "image"); }
 
-  // 从画面读回目前的图片阵列
-  function readImages(){
-    return $$("#img-list .img-row").map(r=>r.dataset.url);
+  // 从画面读回目前的阵列
+  function readMedia(kind){
+    return $$(`#${MEDIA[kind].p}-list .img-row`).map(r=>r.dataset.url);
   }
+  function readImages(){ return readMedia("image"); }
+  function readVideos(){ return readMedia("video"); }
 
-  function bindMultiImage(root){
-    const list = $("#img-list", root); if(!list) return;
-    const box  = $("#img-add", root);
+  function bindMultiImage(root){ bindMultiMedia(root, "image"); }
+  function bindMultiVideo(root){ bindMultiMedia(root, "video"); }
+
+  function bindMultiMedia(root, kind){
+    const c = MEDIA[kind], p = c.p;
+    const isVid = kind === "video";
+    const maxSize = isVid ? MAX_VID : MAX_IMG;
+    const maxLbl  = isVid ? "10MB" : "15MB";
+    const unit    = isVid ? "支" : "张";
+
+    const list = $(`#${p}-list`, root); if(!list) return;
+    const box  = $(`#${p}-add`, root);
     const file = $('input[type=file]', box);
     const bar  = $(".up-bar", box), barFill = $(".up-bar i", box);
 
     function addUrl(u){
       if(!u) return;
-      list.insertAdjacentHTML("beforeend", imgRowHTML(u));
+      list.insertAdjacentHTML("beforeend", mediaRowHTML(u, kind));
       bindRows();
     }
     function bindRows(){
@@ -774,19 +825,19 @@
     });
     file.onchange = ()=>{ uploadMany([...file.files]); file.value=""; };
 
-    $("#img-url-add", root).onclick = ()=>{
-      const inp = $("#img-url", root);
+    $(`#${p}-url-add`, root).onclick = ()=>{
+      const inp = $(`#${p}-url`, root);
       const v = inp.value.trim();
       if(v){ addUrl(v); inp.value=""; toast("已加入，记得点「保存」"); }
     };
 
     async function uploadMany(files){
-      const imgs = files.filter(f=>f.type.startsWith("image/"));
+      const imgs = files.filter(f=>f.type.startsWith(isVid ? "video/" : "image/"));
       if(!imgs.length) return;
       bar.classList.add("on");
       let done = 0;
       for(const f of imgs){
-        if(f.size > MAX_IMG){ toast(`「${f.name}」超过 15MB，已跳过`); done++; continue; }
+        if(f.size > maxSize){ toast(`「${f.name}」超过 ${maxLbl}，已跳过`); done++; continue; }
         try{
           const path = randomName(f);
           const { error } = await sb.storage.from(BUCKET)
@@ -802,7 +853,7 @@
         barFill.style.width = Math.round(done/imgs.length*100) + "%";
       }
       setTimeout(()=>{ bar.classList.remove("on"); barFill.style.width="0"; }, 500);
-      toast(`已上传 ${imgs.length} 张，记得点「保存」`);
+      toast(`已上传 ${imgs.length} ${unit}，记得点「保存」`);
     }
   }
 
