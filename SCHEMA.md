@@ -397,7 +397,49 @@ update letters L
  where L.id = o.id;
 ```
 
-## 8. `messages` 表：停用但保留
+## 8. Storage：`letters` bucket 与上传策略
+
+后台的图片 / 影片上传走 Supabase Storage 的 `letters` bucket。
+**这块之前没写进文档**，导致 bucket 的 RLS 策略缺失时，后台上传会报
+`new row violates row-level security policy`（403），前端只弹一句「上传失败」。
+
+bucket 要是 **public**（粉丝端要能直接读图），档案名带随机串防猜：
+
+```sql
+-- 建 bucket（已存在就跳过）；public = true，单档上限 15MB
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('letters', 'letters', true, 15728640)
+on conflict (id) do update
+  set public = true, file_size_limit = 15728640;
+```
+
+匿名端要能上传 / 覆盖 / 删除（后台用的是 anon key，真正的把关是管理密钥）：
+
+```sql
+drop policy if exists "letters_public_read"   on storage.objects;
+drop policy if exists "letters_anon_insert"   on storage.objects;
+drop policy if exists "letters_anon_update"   on storage.objects;
+drop policy if exists "letters_anon_delete"   on storage.objects;
+
+-- 所有人可读（粉丝端看图）
+create policy "letters_public_read" on storage.objects
+  for select using (bucket_id = 'letters');
+
+-- 匿名可上传 / 覆盖 / 删除（后台编辑用）
+create policy "letters_anon_insert" on storage.objects
+  for insert with check (bucket_id = 'letters');
+create policy "letters_anon_update" on storage.objects
+  for update using (bucket_id = 'letters') with check (bucket_id = 'letters');
+create policy "letters_anon_delete" on storage.objects
+  for delete using (bucket_id = 'letters');
+```
+
+⚠️ 这组策略等于「任何人拿到 anon key 都能往这个 bucket 传档案」。
+anon key 本来就公开在前端，所以这是刻意的取舍：素材本身不是机密
+（未解锁的**内容**由 RPC 控制不下发，档名也带随机串），
+换来后台不必登入就能编辑。真要收紧就得改成 Supabase Auth 登入制。
+
+## 9. `messages` 表：停用但保留
 
 粉丝留言功能已移除，前端不再读写 `messages`。
 表**不要删**（历史留言是客户资产）。若想彻底关闭写入：

@@ -659,6 +659,19 @@
     if(!url) return "";
     try{ return decodeURIComponent(url.split("/").pop().split("?")[0]); }catch(_){ return url; }
   }
+  /* 把 Storage 的原始错误翻成看得懂的话 —— 之前只认 "Bucket not found"，
+     碰到 RLS 403 只会弹一句「上传失败」，查不出原因 */
+  function uploadErrMsg(e, name){
+    const msg = String((e && e.message) || e || "");
+    if(msg.indexOf("Bucket not found") > -1)
+      return "上传失败：Supabase 里没有 letters bucket，请先建立";
+    if(msg.indexOf("row-level security") > -1 || msg.indexOf("Unauthorized") > -1 || /\b403\b/.test(msg))
+      return "上传失败：Storage 权限未开（letters bucket 缺 insert 策略）";
+    if(msg.indexOf("exceeded the maximum allowed size") > -1 || /\b413\b/.test(msg))
+      return "上传失败：档案超过 Supabase 的单档上限";
+    return `「${name}」上传失败：${msg.slice(0,60)}`;
+  }
+
   function randomName(file){
     const ext  = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g,"");
     const rand = Math.random().toString(36).slice(2,10) + Date.now().toString(36);
@@ -846,8 +859,7 @@
           addUrl(sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl);
         }catch(e){
           console.warn(e);
-          toast(String(e.message||e).indexOf("Bucket not found")>-1
-            ? "上传失败：请先在 Supabase 建 letters bucket" : `「${f.name}」上传失败`);
+          toast(uploadErrMsg(e, f.name));
         }
         done++;
         barFill.style.width = Math.round(done/imgs.length*100) + "%";
@@ -935,9 +947,7 @@
         }catch(e){
           console.warn(e);
           bar.classList.remove("on"); barFill.style.width="0";
-          toast(String(e.message||e).indexOf("Bucket not found") > -1
-            ? "上传失败：请先在 Supabase 建 letters bucket"
-            : "上传失败，请重试");
+          toast(uploadErrMsg(e, f.name || "档案"));
         }
         file.value = "";
       }
