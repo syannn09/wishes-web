@@ -186,7 +186,12 @@ $$;
 grant execute on function preview_get_letters(text) to anon;
 ```
 
-> `app.admin_key` 沿用现有 admin RPC 的密钥设置方式。
+> ⚠️ **密钥检查用 `_check_key(p_key)`，不要用 `current_setting('app.admin_key', true)`。**
+> 后者在资料库没设过 `app.admin_key` 时会返回 NULL，而 `p_key is distinct from NULL`
+> 恒为真 —— 结果是**不管输什么密钥都报 `bad key`**。本专案从没设过这个参数，
+> 实际生效的是 `_check_key`（定义在资料库里，比对管理密钥）。
+> 上面这些用 `current_setting` 的作者管理 RPC 同样有这个问题，
+> 之所以还能用，是因为后台目前没在调它们。
 > 若现有 `admin_list_letters` 用的是别的校验方式，请把上面的 `if` 改成一致的写法。
 
 ## 5. 作者管理 RPC（后台用）
@@ -275,11 +280,9 @@ create or replace function admin_update_letter(
   p_author_id bigint, p_slot int,
   p_is_live boolean, p_sort int)
 returns void
-language plpgsql security definer as $$
+language plpgsql security definer set search_path = public as $$
 begin
-  if p_key is distinct from current_setting('app.admin_key', true) then
-    raise exception 'bad key';
-  end if;
+  perform _check_key(p_key);          -- 和其他 admin RPC 同一套密钥检查
   update letters set
     title=p_title, body=p_body,
     image=p_image,  images=coalesce(nullif(p_images,'')::jsonb, '[]'::jsonb),
