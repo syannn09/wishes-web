@@ -270,7 +270,7 @@ end; $$;
 grant execute on function admin_update_letter(text,bigint,text,text,text,text,text,text,text,text,bigint,int,boolean,int) to anon;
 ```
 
-## 7. 一次性初始化 52 个槽位
+## 7. 槽位管理 RPC（初始化 / 新增一封）
 
 后台「初始化 52 封」按钮会调用这个 RPC（只补缺，不动已有的信）：
 
@@ -302,6 +302,47 @@ begin
 end; $$;
 
 grant execute on function admin_init_slots(text) to anon;
+```
+
+### `admin_add_letter`：后台「新增一封信」
+
+后台那颗「＋ 新增一封信」按钮调这个 RPC。它在时间表里找**第一个还没被占用的时段**，
+用那个时段建一封空信；全部用完就报错。
+
+⚠️ 这个函数里的时间表数组**必须和上面 `admin_init_slots` 保持一致**。
+48 → 52 时如果只改了 `admin_init_slots`，这里还是 48 个，
+新增到第 48 封就会报「48 个时段都用完了」。
+
+```sql
+create or replace function admin_add_letter(p_key text)
+returns bigint
+language plpgsql security definer set search_path = public as $$
+declare
+  -- 和 admin_init_slots 同一份时间表（52 个）
+  schedule int[] := array[
+      24,   47,   69,   90,  120,  150,  180,  210,
+     240,  261,  300,  320,  340,  360,  390,  420,
+     450,  480,  504,  540,  570,  600,  630,  660,
+     690,  720,  750,  772,  794,  810,  840,  870,
+     900,  930,  960,  990, 1020, 1040, 1060, 1080,
+    1110, 1140, 1170, 1200, 1224, 1260, 1290, 1320,
+    1350, 1364, 1380, 1410];
+  t int; new_id bigint; pick int := null;
+begin
+  perform _check_key(p_key);
+  foreach t in array schedule loop
+    if not exists (select 1 from letters where slot = t) then
+      pick := t; exit;
+    end if;
+  end loop;
+  if pick is null then raise exception '52 个时段都用完了'; end if;
+  insert into letters (title, slot, sort_order, is_live, teaser_text)
+  values ('（未命名）', pick, pick, false, '')
+  returning id into new_id;
+  return new_id;
+end; $$;
+
+grant execute on function admin_add_letter(text) to anon;
 ```
 
 ### 旧数据迁移（只需一次）
