@@ -287,22 +287,81 @@ function shuffle(a){
   return r;
 }
 
+/* ---- 进度存档（sessionStorage）----
+   只存在玩家自己的浏览器、不上传服务器；关掉分页就清空。
+   存的是「这一局的信件顺序 + 打到第几关 + 总共牵好几根」——
+   关卡是随机分的，不把顺序一起存下来，下次重开「第 3 关」会是另一批信。
+   本关已牵好的那几对不恢复，重开本关从头牵（总数不会倒退）。 */
+const SAVE_KEY = "wishes.match.v1";
+
+function saveGame(){
+  try{
+    sessionStorage.setItem(SAVE_KEY, JSON.stringify({
+      order:     GAME.rounds.flat().map(L => L.id),  // 本局的信件顺序
+      round:     GAME.round,
+      totalTied: GAME.totalTied
+    }));
+  }catch(e){ /* 隐私模式下 sessionStorage 可能不可用，存不了就算了 */ }
+}
+function clearSave(){
+  try{ sessionStorage.removeItem(SAVE_KEY); }catch(e){}
+}
+function loadSave(){
+  try{
+    const raw = sessionStorage.getItem(SAVE_KEY);
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    if(!s || !Array.isArray(s.order) || typeof s.round !== "number") return null;
+    return s;
+  }catch(e){ return null; }
+}
+
+// 把一串信件按每关 PAIRS_PER_ROUND 对切成关卡
+function splitRounds(pool){
+  const rounds = [];
+  for(let i = 0; i < pool.length; i += PAIRS_PER_ROUND){
+    rounds.push(pool.slice(i, i + PAIRS_PER_ROUND));
+  }
+  // 最后一关不足 2 对就并进前一关
+  if(rounds.length > 1 && rounds[rounds.length-1].length < 2){
+    rounds[rounds.length-2].push(...rounds.pop());
+  }
+  return rounds;
+}
+
 function buildGameData(){
   // 牵红线只在 823 预告期出现，那时一封都还没解锁，
   // 所以不看解锁状态，只要绑了作者就能玩（作者本身不是秘密）
   const pool = shuffle(LETTERS.filter(L => L.author_id));
-  GAME.rounds = [];
-  for(let i = 0; i < pool.length; i += PAIRS_PER_ROUND){
-    GAME.rounds.push(pool.slice(i, i + PAIRS_PER_ROUND));
-  }
-  // 最后一关不足 2 对就并进前一关
-  if(GAME.rounds.length > 1 && GAME.rounds[GAME.rounds.length-1].length < 2){
-    GAME.rounds[GAME.rounds.length-2].push(...GAME.rounds.pop());
-  }
+  GAME.rounds = splitRounds(pool);
   GAME.round = 0;
   GAME.matchedInRound = 0;
   GAME.picked = null;
   GAME.totalTied = 0;   // 本局累计牵好的红线
+  clearSave();          // 新的一局：旧存档作废
+}
+
+/* 按存档恢复上一局；存档不可用（没有 / 信件对不上 / 已通关）就返回 false */
+function restoreGameData(){
+  const s = loadSave();
+  if(!s) return false;
+
+  const playable = LETTERS.filter(L => L.author_id);
+  const byId = new Map(playable.map(L => [L.id, L]));
+  // 后台改过信件（删了、换了作者）就别硬套，重新开一局更保险
+  if(s.order.length !== playable.length) return false;
+  const pool = s.order.map(id => byId.get(id));
+  if(pool.some(L => !L)) return false;
+
+  const rounds = splitRounds(pool);
+  if(s.round < 0 || s.round >= rounds.length) return false;   // 已通关或越界
+
+  GAME.rounds = rounds;
+  GAME.round = s.round;
+  GAME.matchedInRound = 0;
+  GAME.picked = null;
+  GAME.totalTied = Number(s.totalTied) || 0;
+  return true;
 }
 
 function renderGame(){
@@ -522,6 +581,7 @@ function tieString(tag, plaque){
     GAME.matchedInRound++;
     GAME.totalTied++;
     updateScore();
+    saveGame();               // 中途关掉弹窗也不丢这根
     showCongrats(tag);        // GAME.lock 保持，直到玩家关掉表情包
   }, 900);
 }
@@ -586,8 +646,9 @@ function afterCongrats(){
   if(GAME.matchedInRound >= (GAME.rounds[GAME.round]||[]).length){
     if(GAME.round + 1 < GAME.rounds.length){
       setTimeout(()=> showRoundBanner(`第 ${GAME.round+1} 关 · 红线已牵好 🎈`), 300);
-      setTimeout(()=>{ GAME.round++; renderRound(); }, 1450);
+      setTimeout(()=>{ GAME.round++; renderRound(); saveGame(); }, 1450);
     }else{
+      clearSave();   // 通关了，存档作废；再点「再玩一次」重新随机
       setTimeout(()=>{ $("#game-done").classList.add("show"); startFireworks(); }, 600);
     }
   }
@@ -688,7 +749,8 @@ $$("[data-close]").forEach(b => b.onclick = ()=> closeOverlay(b.closest(".overla
 $$(".overlay").forEach(o => o.onclick = (e)=>{ if(e.target === o) closeOverlay(o); });
 
 $("#btn-match").onclick = ()=>{
-  buildGameData();
+  // 关掉弹窗再打开，接着上次的关卡继续；没有存档才开新的一局
+  if(!restoreGameData()) buildGameData();
   renderGame();
   openOverlay("#match-modal");
 };
