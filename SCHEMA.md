@@ -165,9 +165,7 @@ language plpgsql
 security definer
 as $$
 begin
-  if p_key is distinct from current_setting('app.admin_key', true) then
-    raise exception 'bad key';
-  end if;
+  perform _check_key(p_key);
 
   return query
   select L.id, L.slot, L.title, true,
@@ -190,8 +188,7 @@ grant execute on function preview_get_letters(text) to anon;
 > 后者在资料库没设过 `app.admin_key` 时会返回 NULL，而 `p_key is distinct from NULL`
 > 恒为真 —— 结果是**不管输什么密钥都报 `bad key`**。本专案从没设过这个参数，
 > 实际生效的是 `_check_key`（定义在资料库里，比对管理密钥）。
-> 上面这些用 `current_setting` 的作者管理 RPC 同样有这个问题，
-> 之所以还能用，是因为后台目前没在调它们。
+> 本文档里所有 admin RPC 都已统一改用 `_check_key`。
 > 若现有 `admin_list_letters` 用的是别的校验方式，请把上面的 `if` 改成一致的写法。
 
 ## 5. 作者管理 RPC（后台用）
@@ -203,9 +200,7 @@ create or replace function admin_list_authors(p_key text)
 returns setof authors
 language plpgsql security definer as $$
 begin
-  if p_key is distinct from current_setting('app.admin_key', true) then
-    raise exception 'bad key';
-  end if;
+  perform _check_key(p_key);
   return query select * from authors order by sort_order asc, id asc;
 end; $$;
 
@@ -214,9 +209,7 @@ returns bigint
 language plpgsql security definer as $$
 declare new_id bigint;
 begin
-  if p_key is distinct from current_setting('app.admin_key', true) then
-    raise exception 'bad key';
-  end if;
+  perform _check_key(p_key);
   insert into authors(name) values('新作者') returning id into new_id;
   return new_id;
 end; $$;
@@ -226,9 +219,7 @@ create or replace function admin_update_author(
 returns void
 language plpgsql security definer as $$
 begin
-  if p_key is distinct from current_setting('app.admin_key', true) then
-    raise exception 'bad key';
-  end if;
+  perform _check_key(p_key);
   update authors set name=p_name, avatar=p_avatar, bio=p_bio, sort_order=p_sort
   where id=p_id;
 end; $$;
@@ -237,9 +228,7 @@ create or replace function admin_delete_author(p_key text, p_id bigint)
 returns void
 language plpgsql security definer as $$
 begin
-  if p_key is distinct from current_setting('app.admin_key', true) then
-    raise exception 'bad key';
-  end if;
+  perform _check_key(p_key);
   delete from authors where id=p_id;
 end; $$;
 
