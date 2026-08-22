@@ -784,7 +784,7 @@ function applyPhase(){
 }
 
 /* =========================================================
-   相遇计天：从 2016-08-24（中国时间）数到现在
+   计天：从 2016-08-24（中国时间）数到现在
 ========================================================= */
 function daysSinceMet(){
   // nowChina() 和这里的 met 都是「中国墙上时间」同一坐标系，直接相减
@@ -796,7 +796,7 @@ function updateCountdown(){
   const phase = currentPhase();
 
   if(phase === "archive"){
-    $("#countdown").textContent = `🌸 相遇 ${daysSinceMet()} 天 · 感谢每一位创作者`;
+    $("#countdown").textContent = `🌸 背后的故事绝对完美得 ${daysSinceMet()} 天 · 感谢每一位创作者`;
     return;
   }
   if(phase === "reveal"){
@@ -805,8 +805,8 @@ function updateCountdown(){
     $("#countdown").textContent = `🎉 824 快乐 · 已开启 ${opened} / ${total} 封`;
     return;
   }
-  // teaser：不倒数了，改成从 2016.8.24 数「相遇多少天」
-  $("#countdown").textContent = `相遇 ${daysSinceMet()} 天 🌸`;
+  // teaser：不倒数了，改成从 2016.8.24 数天数
+  $("#countdown").textContent = `背后的故事绝对完美得 ${daysSinceMet()} 天 🌸`;
 }
 
 /* =========================================================
