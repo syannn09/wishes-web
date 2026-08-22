@@ -640,9 +640,12 @@ function preloadSticker(src){
   if(!src || _preloaded.has(src)) return;
   _preloaded.add(src);
   if(/\.(mp4|webm)$/i.test(src)){
+    // link preload + 隐藏 video 双保险：部分内核（微信 X5）会忽略 as=video 的 preload
     const l = document.createElement("link");
     l.rel = "preload"; l.as = "video"; l.href = src;
     document.head.appendChild(l);
+    const v = document.createElement("video");
+    v.preload = "auto"; v.muted = true; v.src = src;
   }else{
     const im = new Image();
     im.decoding = "async";
@@ -662,7 +665,8 @@ function warmStickers(){
 function stickerHTML(src){
   if(!src) return "";
   if(/\.(mp4|webm)$/i.test(src)){
-    return `<video class="sticker" src="${escapeHtml(src)}" autoplay muted loop playsinline preload="auto"></video>`;
+    // webkit-playsinline / x5-playsinline：旧 iOS 微信、安卓微信 X5 内核的内联播放
+    return `<video class="sticker" src="${escapeHtml(src)}" autoplay muted loop playsinline webkit-playsinline x5-playsinline preload="auto"></video>`;
   }
   return `<img class="sticker" src="${escapeHtml(src)}" alt="">`;
 }
