@@ -372,7 +372,11 @@ function restoreGameData(){
   GAME.round = s.round;
   GAME.matchedInRound = 0;
   GAME.picked = null;
-  GAME.totalTied = Number(s.totalTied) || 0;
+  // 累计数不信任存档，直接从关卡推导：进入第 N 关时必然 = 前 N-1 关的对数和。
+  // （存档写在牵好第 4 对的瞬间，「进第 2 关」要等弹窗关掉才写 ——
+  //   在这个空窗关掉分页，存档会停在「第 1 关 + 已牵 4」的矛盾状态，
+  //   恢复后重玩第 1 关还会重复累加）
+  GAME.totalTied = rounds.slice(0, s.round).reduce((a,r)=>a+r.length, 0);
   return true;
 }
 
