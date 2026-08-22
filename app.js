@@ -893,7 +893,31 @@ loadLetters();
 if(location.hash === "#play" && currentPhase() === "teaser"){
   setTimeout(()=>{ if(LETTERS.length) $("#btn-match").click(); }, 400);
 }
-setInterval(loadLetters, 30000);      // 每 30 秒刷新解锁状态 / 新上线的信
+/* ---- 智能刷新：把请求量压到最低（流量额度友好）----
+   823/825：内容基本不变，10 分钟兜底一次（管理员改信也等得到）
+   824    ：按「下一封解锁时间」精准抓，加 5~20 秒随机抖动 ——
+            1000 个人不会在同一秒齐刷刷打服务器；封与封之间
+            5 分钟兜底一次。比原来的 30 秒盲轮询省 ~10 倍流量 */
+function nextRefreshDelay(){
+  if(!LETTERS.length) return 30000;              // 首抓失败/还没数据：30 秒重试
+  const phase = currentPhase();
+  if(phase !== "reveal") return 10*60*1000;
+  const FALLBACK = 5*60*1000;
+  const now = currentSlot();
+  const next = LETTERS.map(L=>L.slot).filter(sl=>sl>now).sort((a,b)=>a-b)[0];
+  if(next === undefined) return FALLBACK;        // 今天的全开完了
+  const jitter = 5000 + Math.random()*15000;
+  return Math.min(msUntilSlot(next) + jitter, FALLBACK);
+}
+let refreshTimer = null;
+function scheduleRefresh(){
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(async ()=>{
+    try{ await loadLetters(); }catch(e){}
+    scheduleRefresh();
+  }, nextRefreshDelay());
+}
+scheduleRefresh();
 
 updateCountdown();
 setInterval(updateCountdown, 30000);
