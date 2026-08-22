@@ -595,7 +595,7 @@ function tieString(tag, plaque){
     updateScore();
     saveGame();               // 中途关掉弹窗也不丢这根
     showCongrats(tag);        // GAME.lock 保持，直到玩家关掉表情包
-  }, 900);
+  }, 750);                    // 红线 .38s + 打结 .35s ≈ 730ms，刚好接上
 }
 
 /* ---- 表情包：答对抽 A 份、答错抽 B 份 ----
@@ -603,7 +603,9 @@ function tieString(tag, plaque){
 function makeStickerBag(list){
   let bag = [];
   let last = null;
-  return ()=>{
+  let peeked = null;          // 预抽好的下一张（供预载用）
+
+  function draw(){
     if(!list || !list.length) return null;
     if(!bag.length){
       bag = shuffle(list);
@@ -615,10 +617,46 @@ function makeStickerBag(list){
     }
     last = bag.pop();
     return last;
+  }
+
+  const next = ()=>{
+    const v = peeked !== null ? peeked : draw();
+    peeked = null;
+    return v;
   };
+  // 先把下一张抽出来并开始下载，等真的要弹时已经在快取里
+  next.warm = ()=>{
+    if(peeked === null) peeked = draw();
+    preloadSticker(peeked);
+    return peeked;
+  };
+  return next;
 }
+
+/* 表情包档案不小（平均 800KB、最大 2MB+），等要弹的那一刻才下载会卡 1~2 秒。
+   提前把下一张塞进浏览器快取：图片用 Image()，影片用 <link rel=preload>。 */
+const _preloaded = new Set();
+function preloadSticker(src){
+  if(!src || _preloaded.has(src)) return;
+  _preloaded.add(src);
+  if(/\.(mp4|webm)$/i.test(src)){
+    const l = document.createElement("link");
+    l.rel = "preload"; l.as = "video"; l.href = src;
+    document.head.appendChild(l);
+  }else{
+    const im = new Image();
+    im.decoding = "async";
+    im.src = src;
+  }
+}
+
 const nextCorrectSticker = makeStickerBag((window.CONFIG||{}).STICKERS_CORRECT);
 const nextWrongSticker   = makeStickerBag((window.CONFIG||{}).STICKERS_WRONG);
+
+// 开局先各暖一张，之后每弹完一张就暖下一张
+function warmStickers(){
+  try{ nextCorrectSticker.warm(); nextWrongSticker.warm(); }catch(e){}
+}
 
 // mp4/webm 用静音自动播放的 video（手机上要 muted+playsinline 才能自动播），其余当图片
 function stickerHTML(src){
@@ -648,6 +686,7 @@ function showCongrats(tag){
   const box = $("#congrats");
   box.classList.add("show");
   kickSticker(box);
+  warmStickers();             // 这张已经在看了，先把下一张下载好
   $("#cg-next").onclick = ()=>{
     box.classList.remove("show");
     afterCongrats();
@@ -703,7 +742,7 @@ function snapString(tag, plaque){
     path.remove();
     tag.classList.remove("shakeit"); plaque.classList.remove("shakeit");
     showOops();                                  // GAME.lock 保持，直到玩家关掉表情包
-  }, 900);
+  }, 750);
 }
 
 /* ---- 答错弹窗：只弹表情包，关掉就继续牵 ---- */
@@ -715,6 +754,7 @@ function showOops(){
   $("#go-count").textContent = GAME.totalTied;   // 本局累计牵好的红线
   box.classList.add("show");
   kickSticker(box);
+  warmStickers();             // 这张已经在看了，先把下一张下载好
   $("#oops-next").onclick = ()=>{
     box.classList.remove("show");
     GAME.lock = false;      // 解锁继续玩，本关进度、已牵好的红线都保留
@@ -765,6 +805,7 @@ $("#btn-match").onclick = ()=>{
   if(!restoreGameData()) buildGameData();
   renderGame();
   openOverlay("#match-modal");
+  warmStickers();           // 开局就把第一张答对/答错的表情包下载好
 };
 $("#game-restart").onclick = ()=>{ buildGameData(); renderGame(); };
 
