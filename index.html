@@ -225,10 +225,18 @@
   .tag-card:active{transform:scale(.96);}
   .tag-band{background:var(--sky-blue);color:#fff;font-size:10px;font-weight:800;letter-spacing:2px;
     text-align:center;padding:3px 4px;border-radius:7px 7px 0 0;}
-  .tag-title{padding:6px 7px 8px;font-size:12px;font-weight:700;line-height:1.45;color:var(--ink);
-    min-height:40px;display:flex;align-items:center;justify-content:center;text-align:center;
-    overflow-wrap:anywhere;
-    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  /* 只用 -webkit-box（同一条规则里写两次 display，旧 WebKit 会算出塌陷高度）。
+     垂直居中靠 padding + min-height，不靠 flex —— 兼容 iOS / Android / 鸿蒙旧内核 */
+  /* 作品名最多 3 行。max-height 用 em 算准 3 行高度，overflow:hidden 硬裁 ——
+     不依赖 -webkit-line-clamp（部分内核会把 display:-webkit-box 规范化掉，
+     clamp 就失效，多出来的半行会露在外面）。
+     支援 line-clamp 的浏览器额外加省略号，锦上添花而非必需。 */
+  .tag-title{padding:9px 7px;font-size:12px;font-weight:700;line-height:1.45;color:var(--ink);
+    min-height:40px;max-height:calc(1.45em * 3 + 17px);overflow:hidden;  /* 3 行 + padding，留 1px 余量防露半行 */
+    text-align:center;overflow-wrap:anywhere;word-break:break-word;}
+  @supports (-webkit-line-clamp:3){
+    .tag-title{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
+  }
   /* 选中：短册抬起 + 垂下一截晃动的红线头 */
   .tag-wrap.picked .tag-card{border-color:#e8404f;transform:translateY(-3px);
     box-shadow:0 0 0 4px rgba(232,64,79,.14),0 8px 18px rgba(232,64,79,.22);}
@@ -249,10 +257,12 @@
     box-shadow:0 3px 9px rgba(120,80,140,.14);
     transition:transform .2s,box-shadow .2s,border-color .2s;}
   .plaque:active{transform:scale(.96);}
-  .plaque .pname{font-weight:800;font-size:13px;color:var(--ink);overflow-wrap:anywhere;
-    display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+  /* 单行截断用 ellipsis，不用 -webkit-box —— 后者当 flex 子元素时
+     在旧 iOS / 鸿蒙内核上会整块塌成 0 高度，名字就消失了 */
+  .plaque .pname{font-weight:800;font-size:13px;color:var(--ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .plaque .pbio{font-size:10.5px;color:var(--ink-soft);margin-top:3px;
-    display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .plaque.picked{border-color:#e8404f;
     box-shadow:0 0 0 4px rgba(232,64,79,.14),0 6px 14px rgba(232,64,79,.2);}
 
@@ -275,7 +285,14 @@
      左：作品挂牌系在一根竖枝上；右：作者名牌；红线水平牵。 */
   .lr-scene{position:relative;padding-left:24px;}
   .trunk-svg{position:absolute;left:3px;top:-6px;height:calc(100% + 12px);width:14px;pointer-events:none;}
+  /* flex 的 gap 要 iOS 14.4+ 才支援。旧机先用 margin 撑开，
+     支援 flex gap 的浏览器再把 margin 归零（用 flex 上下文侦测，
+     只写 @supports(gap:1px) 会被只支援 grid gap 的旧机误判） */
   .lr-rows{display:flex;flex-direction:column;gap:9px;}
+  .lr-rows > .lr-row + .lr-row{margin-top:9px;}
+  @supports (display:flex) and (gap:1px){
+    .lr-rows > .lr-row + .lr-row{margin-top:0;}
+  }
   /* 作者牌比作品牌略宽（名字长，少截断）；间距收窄留给内容；
      stretch 让左右两张卡等高，一行看起来是齐的 */
   .lr-row{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;align-items:stretch;}
@@ -287,10 +304,11 @@
   /* 系在枝上的短绳 */
   .tag-wrap.lr::before{content:"";position:absolute;left:-21px;top:50%;width:21px;height:2px;
     border-radius:2px;background:linear-gradient(90deg,#b09484,#d8c2b4);}
-  /* 撑满整行高度，和右边作者牌齐平 */
-  .tag-wrap.lr{display:flex;}
-  .tag-wrap.lr .tag-card{display:flex;flex-direction:column;width:100%;}
-  .tag-wrap.lr .tag-title{min-height:34px;flex:1;}
+  /* 撑满整行高度，和右边作者牌齐平。
+     不用 flex:1 链（旧内核算不出来会塌陷），改用 width:100% + min-height */
+  .tag-wrap.lr{display:block;}
+  .tag-wrap.lr .tag-card{width:100%;}
+  .tag-wrap.lr .tag-title{min-height:34px;}
   /* 左右布局选中：红线头从右侧探出去，指向作者那边 */
   .tag-wrap.lr.picked .tag-card::after{left:auto;right:-22px;bottom:auto;top:50%;
     width:22px;height:2px;transform-origin:left center;}
@@ -299,6 +317,8 @@
 
   /* 关卡进度：一排小红结 */
   #round-dots{display:flex;gap:6px;justify-content:center;margin-top:4px;}
+  .rdot + .rdot{margin-left:6px;}
+  @supports (display:flex) and (gap:1px){ .rdot + .rdot{margin-left:0;} }
   .rdot{width:9px;height:9px;border-radius:50%;background:#eee3e6;transition:background .3s,box-shadow .3s;}
   .rdot.done{background:#e8404f;box-shadow:0 0 6px rgba(232,64,79,.5);}
   .rdot.now{background:#fff;border:2px solid #e8404f;}
@@ -353,13 +373,18 @@
   .cg-card .cg-work{margin:10px 0 0;font-size:17px;font-weight:800;color:var(--ink);}
   .cg-card .cg-sub{margin:4px 0 16px;font-size:12px;color:var(--ink-soft);}
   .cg-btns{display:flex;gap:9px;justify-content:center;}
+  .cg-btns .btn + .btn{margin-left:9px;}
+  @supports (display:flex) and (gap:1px){ .cg-btns .btn + .btn{margin-left:0;} }
   .cg-btns .btn{padding:11px 18px;font-size:14px;}
 
   /* 作者名牌上的统一头像 */
-  .plaque{display:flex;align-items:center;gap:8px;text-align:left;height:100%;}
+  /* min-height 而非 height:100% —— 后者依赖 grid stretch，
+     旧内核算不出来会塌成 0 高把内容吃掉 */
+  .plaque{display:flex;align-items:center;gap:8px;text-align:left;
+    min-height:100%;box-sizing:border-box;}
   .plaque .pav{width:34px;height:34px;border-radius:50%;flex:none;object-fit:cover;
     border:1.5px solid rgba(232,64,79,.25);}
-  .plaque .ptext{min-width:0;}
+  .plaque .ptext{min-width:0;flex:1 1 auto;}
 
 
   #fireworks{position:fixed;inset:0;z-index:9;pointer-events:none;display:none;}
