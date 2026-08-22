@@ -796,7 +796,7 @@ function updateCountdown(){
   const phase = currentPhase();
 
   if(phase === "archive"){
-    $("#countdown").textContent = `🌸 背后的故事绝对完美得 ${daysSinceMet()} 天 · 感谢每一位创作者`;
+    $("#countdown").textContent = `🌸 背后的故事绝对完美的第 ${daysSinceMet()} 天 · 感谢每一位创作者`;
     return;
   }
   if(phase === "reveal"){
@@ -806,7 +806,7 @@ function updateCountdown(){
     return;
   }
   // teaser：不倒数了，改成从 2016.8.24 数天数
-  $("#countdown").textContent = `背后的故事绝对完美得 ${daysSinceMet()} 天 🌸`;
+  $("#countdown").textContent = `背后的故事绝对完美的第 ${daysSinceMet()} 天 🌸`;
 }
 
 /* =========================================================
