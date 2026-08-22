@@ -285,14 +285,10 @@
      左：作品挂牌系在一根竖枝上；右：作者名牌；红线水平牵。 */
   .lr-scene{position:relative;padding-left:24px;}
   .trunk-svg{position:absolute;left:3px;top:-6px;height:calc(100% + 12px);width:14px;pointer-events:none;}
-  /* flex 的 gap 要 iOS 14.4+ 才支援。旧机先用 margin 撑开，
-     支援 flex gap 的浏览器再把 margin 归零（用 flex 上下文侦测，
-     只写 @supports(gap:1px) 会被只支援 grid gap 的旧机误判） */
-  .lr-rows{display:flex;flex-direction:column;gap:9px;}
+  /* 间距全用 margin，不用 flex gap —— iOS 14.4 以下不支援，
+     @supports 侦测在旧内核上也不可靠，margin 所有设备行为一致 */
+  .lr-rows{display:flex;flex-direction:column;}
   .lr-rows > .lr-row + .lr-row{margin-top:9px;}
-  @supports (display:flex) and (gap:1px){
-    .lr-rows > .lr-row + .lr-row{margin-top:0;}
-  }
   /* 作者牌比作品牌略宽（名字长，少截断）；间距收窄留给内容；
      stretch 让左右两张卡等高，一行看起来是齐的 */
   .lr-row{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;align-items:stretch;}
@@ -316,9 +312,8 @@
     margin-left:0;transform-origin:-22px 50%;}
 
   /* 关卡进度：一排小红结 */
-  #round-dots{display:flex;gap:6px;justify-content:center;margin-top:4px;}
+  #round-dots{display:flex;justify-content:center;margin-top:4px;}
   .rdot + .rdot{margin-left:6px;}
-  @supports (display:flex) and (gap:1px){ .rdot + .rdot{margin-left:0;} }
   .rdot{width:9px;height:9px;border-radius:50%;background:#eee3e6;transition:background .3s,box-shadow .3s;}
   .rdot.done{background:#e8404f;box-shadow:0 0 6px rgba(232,64,79,.5);}
   .rdot.now{background:#fff;border:2px solid #e8404f;}
@@ -372,16 +367,17 @@
   .cg-card h4{margin:0 0 8px;font-size:17px;color:#e8404f;}
   .cg-card .cg-work{margin:10px 0 0;font-size:17px;font-weight:800;color:var(--ink);}
   .cg-card .cg-sub{margin:4px 0 16px;font-size:12px;color:var(--ink-soft);}
-  .cg-btns{display:flex;gap:9px;justify-content:center;}
+  .cg-btns{display:flex;justify-content:center;}
   .cg-btns .btn + .btn{margin-left:9px;}
-  @supports (display:flex) and (gap:1px){ .cg-btns .btn + .btn{margin-left:0;} }
   .cg-btns .btn{padding:11px 18px;font-size:14px;}
 
   /* 作者名牌上的统一头像 */
-  /* min-height 而非 height:100% —— 后者依赖 grid stretch，
-     旧内核算不出来会塌成 0 高把内容吃掉 */
-  .plaque{display:flex;align-items:center;gap:8px;text-align:left;
-    min-height:100%;box-sizing:border-box;}
+  /* 不用任何百分比高度：.plaque 本身是 grid 子元素，
+     align-items:stretch 会自动拉到和同行等高。
+     min-height:100% 在旧 WebKit（微信内置浏览器）里是循环依赖 ——
+     行高由内容定、内容又要 100% 行高，它会按整个容器高度算，
+     卡片直接撑成整屏高。 */
+  .plaque{display:flex;align-items:center;gap:8px;text-align:left;box-sizing:border-box;}
   .plaque .pav{width:34px;height:34px;border-radius:50%;flex:none;object-fit:cover;
     border:1.5px solid rgba(232,64,79,.25);}
   .plaque .ptext{min-width:0;flex:1 1 auto;}
@@ -479,10 +475,10 @@
   <canvas id="fireworks"></canvas>
   <div class="toast" id="toast"></div>
 
-  <script src="./config.js?v=5"></script>
+  <script src="./config.js?v=6"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <!-- 演示数据：只在 ?demo=1 时真正被用到 -->
-  <script src="./demo-data.js?v=5"></script>
-  <script src="./app.js?v=5"></script>
+  <script src="./demo-data.js?v=6"></script>
+  <script src="./app.js?v=6"></script>
 </body>
 </html>
