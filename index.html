@@ -80,8 +80,11 @@
     grid-template-columns:repeat(auto-fit,minmax(78px,110px));}
   @media(min-width:700px){ #grid{gap:14px;grid-template-columns:repeat(auto-fit,minmax(104px,132px));} }
   /* 信封少的时候（824 刚开始）居中挂着，别孤零零缩在左上角 */
-  body[data-phase="reveal"] #board{display:flex;align-items:center;justify-content:center;}
-  body[data-phase="reveal"] #grid{margin:auto;}
+  body[data-phase="reveal"] #board{display:flex;align-items:center;justify-content:center;
+    overflow-x:hidden;}
+  /* width:100% 让 #grid 有确定宽度 —— 作为 flex 子元素时宽度不定，
+     auto-fit 会拿 max-width:900px 算列数，排出 700px+ 比手机屏宽，能左右拖 */
+  body[data-phase="reveal"] #grid{margin:auto;width:100%;}
   /* 没有底部按钮的阶段，下方留白收窄 */
   body[data-phase="reveal"] #board,
   body[data-phase="archive"] #board{padding-bottom:calc(28px + env(safe-area-inset-bottom));}
@@ -475,10 +478,10 @@
   <canvas id="fireworks"></canvas>
   <div class="toast" id="toast"></div>
 
-  <script src="./config.js?v=9"></script>
+  <script src="./config.js?v=10"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <!-- 演示数据：只在 ?demo=1 时真正被用到 -->
-  <script src="./demo-data.js?v=9"></script>
-  <script src="./app.js?v=9"></script>
+  <script src="./demo-data.js?v=10"></script>
+  <script src="./app.js?v=10"></script>
 </body>
 </html>

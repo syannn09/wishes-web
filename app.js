@@ -826,10 +826,13 @@ function applyPhase(){
   document.body.dataset.phase = phase;
   // 牵红线只在 823（预告期）出现
   $("#btn-match").style.display = (phase === "teaser") ? "" : "none";
-  $("#subtitle").textContent =
+  // 824 当天不放副标题（只留下面的「已开启 X / 52」），整行收起来不留空
+  const sub = $("#subtitle");
+  sub.textContent =
     phase === "teaser"  ? "点击信封 开启洋灵的平行时空" :
-    phase === "reveal"  ? "信封按时间表，一封一封挂上树" :
+    phase === "reveal"  ? "" :
                           "52 封信，全部在这里了";
+  sub.style.display = (phase === "reveal") ? "none" : "";
 }
 
 /* =========================================================
