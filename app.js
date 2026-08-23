@@ -167,6 +167,7 @@ async function loadLetters(){
     else                         unlockedCount = sorted.filter(L => L.slot <= currentSlot()).length;
     LETTERS = sorted.map((L,i) => ({ ...L, unlocked: i < unlockedCount }));
     renderGrid();
+    updateCountdown();
     return;
   }
   if(!sb){ renderGrid(); return; }
@@ -181,6 +182,7 @@ async function loadLetters(){
     if(PREVIEW_KEY) toast("预览密钥错误");
   }
   renderGrid();
+  updateCountdown();   // 数据一到就刷新「已开启 X / 52」，不等 30 秒定时
 }
 
 /* =========================================================
