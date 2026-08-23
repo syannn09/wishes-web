@@ -103,6 +103,8 @@ if(window.CONFIG && window.CONFIG.SUPABASE_URL && window.CONFIG.SUPABASE_URL.ind
 }
 if(window.CONFIG && window.CONFIG.BG_IMAGE){
   $("#bg").style.backgroundImage = `url("${window.CONFIG.BG_IMAGE}")`;
+  // 根元素也铺同一张：iOS Safari 工具栏后面只画根元素背景
+  document.documentElement.style.backgroundImage = `url("${window.CONFIG.BG_IMAGE}")`;
 }
 if(PREVIEW_KEY) document.body.classList.add("is-preview");
 
