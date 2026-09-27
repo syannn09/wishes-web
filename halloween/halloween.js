@@ -630,6 +630,16 @@ function closeModal(){
 $$("[data-close]").forEach(b => b.onclick = closeModal);
 $("#door-modal").onclick = (e)=>{ if(e.target === e.currentTarget) closeModal(); };
 
+/* ---- 返回键：从主页点进来的，就回「上一页」——主页会停回原本滑到的地方
+   （入口点进来回入口、时间线点进来回时间线）；直接打开网址的才照 href 去主页 ---- */
+$("#btn-home").addEventListener("click", function(e){
+  const ref = document.referrer || "";
+  if(ref.indexOf(location.origin + "/home") === 0 && history.length > 1){
+    e.preventDefault();
+    history.back();
+  }
+});
+
 /* =========================================================
    启动
 ========================================================= */
