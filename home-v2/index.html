@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>洋灵 · 平行时空</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+<link rel="alternate icon" href="/assets/favicon.ico" />
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+<meta name="theme-color" content="#32b5e1" />
+<style>
+  :root{
+    /* 应援色：天色 #32B5E1，洋红 #F90092 */
+    --sky:#32b5e1; --sky-soft:#bfe8f7; --magenta:#f90092; --magenta-soft:#ffd0ea;
+    --ink:#2f2a45; --ink-soft:#7a7590; --paper:#fffafd; --line:#efe6f0;
+    --night:#140a24; --pumpkin:#ff7a1a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html{background:var(--paper);}
+  body{margin:0;color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    background:var(--paper);overflow-x:hidden;}
+  a{color:inherit;text-decoration:none;}
+  .wrap{max-width:560px;margin:0 auto;padding:0 18px;}
+
+  /* ================= 首屏：天色和洋红相遇 ================= */
+  .hero{position:relative;min-height:100vh;min-height:100svh;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    padding:60px 20px 90px;padding-top:calc(60px + env(safe-area-inset-top));
+    background:
+      radial-gradient(ellipse at 0% 0%, rgba(50,181,225,.55) 0%, rgba(50,181,225,0) 58%),
+      radial-gradient(ellipse at 100% 100%, rgba(249,0,146,.45) 0%, rgba(249,0,146,0) 58%),
+      linear-gradient(160deg, #e9f7fd 0%, #fffafd 50%, #ffeaf5 100%);}
+  /* 两条缠绕的光带（红线） */
+  .ribbons{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
+  .ribbons path{fill:none;stroke-linecap:round;}
+  .rb-sky{stroke:var(--sky);}
+  .rb-mag{stroke:var(--magenta);}
+  .rb-flow{stroke-dasharray:6 18;animation:flow 6s linear infinite;opacity:.55;}
+  @keyframes flow{to{stroke-dashoffset:-240}}
+
+  .hero .tag{position:relative;display:inline-block;font-size:12px;font-weight:800;letter-spacing:6px;
+    padding:6px 14px 6px 20px;border-radius:20px;color:#fff;
+    background:linear-gradient(90deg,var(--sky),var(--magenta));box-shadow:0 6px 18px rgba(249,0,146,.25);}
+  .hero .since{position:relative;margin-top:26px;font-size:14px;color:var(--ink-soft);letter-spacing:2px;}
+  .hero .days{position:relative;margin:6px 0 0;font-weight:900;line-height:1;letter-spacing:-2px;
+    font-size:88px;font-size:clamp(72px,26vw,132px);font-variant-numeric:tabular-nums;
+    color:var(--magenta);
+    background:linear-gradient(120deg,var(--sky) 10%,var(--magenta) 90%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .hero .unit{position:relative;margin-top:6px;font-size:17px;font-weight:800;letter-spacing:4px;}
+  .hero .dates{position:relative;margin-top:18px;font-size:12px;color:var(--ink-soft);letter-spacing:1px;
+    font-variant-numeric:tabular-nums;}
+  .scroll-hint{position:absolute;left:0;right:0;bottom:22px;bottom:calc(22px + env(safe-area-inset-bottom));
+    text-align:center;font-size:12px;color:var(--ink-soft);letter-spacing:2px;}
+  .scroll-hint i{display:block;width:2px;height:26px;margin:8px auto 0;border-radius:2px;
+    background:linear-gradient(var(--sky),var(--magenta));animation:hint 1.6s ease-in-out infinite;}
+  @keyframes hint{0%{transform:scaleY(.3);transform-origin:top;opacity:.4}50%{transform:scaleY(1);opacity:1}100%{transform:scaleY(.3);transform-origin:bottom;opacity:.4}}
+
+  /* ================= 区块标题 ================= */
+  section{padding:44px 0 8px;}
+  .sec-h{display:flex;align-items:baseline;margin-bottom:16px;}
+  .sec-h h2{margin:0;font-size:21px;font-weight:900;letter-spacing:2px;}
+  .sec-h span{margin-left:10px;font-size:12px;color:var(--ink-soft);letter-spacing:1px;}
+  .sec-h::after{content:"";flex:1;height:2px;margin-left:12px;border-radius:2px;align-self:center;
+    background:linear-gradient(90deg,var(--sky-soft),var(--magenta-soft));}
+
+  /* ================= 平行时空入口 ================= */
+  .portal{position:relative;display:block;border-radius:22px;overflow:hidden;margin-bottom:16px;
+    box-shadow:0 16px 40px rgba(47,42,69,.16);transition:transform .2s;}
+  .portal:active{transform:scale(.985);}
+  .portal .art{position:relative;height:0;padding-top:62%;background-size:cover;background-position:center;}
+  .portal.big .art{padding-top:78%;}
+  .portal .body{position:relative;padding:16px 18px 18px;background:#fff;}
+  .portal .row{display:flex;align-items:center;}
+  .portal h3{margin:0;font-size:20px;font-weight:900;letter-spacing:1px;flex:1;min-width:0;}
+  .portal p{margin:6px 0 0;font-size:13px;color:var(--ink-soft);line-height:1.6;}
+  .portal .go{flex:none;margin-left:12px;padding:10px 18px;border-radius:24px;font-size:14px;font-weight:800;color:#fff;}
+  .chip{position:absolute;top:14px;left:14px;z-index:2;display:inline-block;font-size:12px;font-weight:800;
+    padding:5px 12px;border-radius:14px;color:#fff;letter-spacing:1px;box-shadow:0 4px 12px rgba(0,0,0,.2);}
+  .chip.live{background:#18b26b;}
+  .chip.soon{background:var(--pumpkin);}
+  .chip.past{background:rgba(47,42,69,.72);}
+  .chip.prep{background:rgba(47,42,69,.72);}
+  .chip .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;margin-right:6px;
+    vertical-align:1px;animation:blink 1.2s ease-in-out infinite;}
+  @keyframes blink{50%{opacity:.25}}
+  .stat{margin-top:10px;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;}
+
+  /* 万圣节入口：夜空 + 发光的门 */
+  .t-halloween .art{background-color:var(--night);
+    background-image:
+      radial-gradient(circle at 80% 22%, #fff4c8 0 6%, rgba(255,220,130,.35) 6.5%, rgba(255,220,130,0) 15%),
+      radial-gradient(ellipse at 50% 120%, rgba(255,122,26,.5) 0%, rgba(255,122,26,0) 60%),
+      linear-gradient(180deg,#140a24 0%,#3a1a5c 100%);}
+  .t-halloween .art svg{position:absolute;left:50%;bottom:0;height:80%;width:auto;transform:translateX(-50%);}
+  .t-halloween .go{background:var(--pumpkin);}
+  .t-halloween .stat{color:var(--pumpkin);}
+  /* 824 入口：樱花树 */
+  .t-824 .art{background-color:#cfe6f5;background-position:center 70%;}
+  .t-824 .art::after{content:"";position:absolute;top:0;right:0;bottom:0;left:0;
+    background:linear-gradient(180deg,rgba(255,255,255,0) 45%,rgba(249,0,146,.22) 100%);}
+  .t-824 .go{background:var(--magenta);}
+  .t-824 .stat{color:var(--magenta);}
+
+  /* ================= 时间线：两条线一路并肩 ================= */
+  .timeline{position:relative;padding-left:34px;}
+  .timeline::before,.timeline::after{content:"";position:absolute;top:6px;bottom:6px;width:3px;border-radius:3px;}
+  .timeline::before{left:9px;background:var(--sky);}
+  .timeline::after{left:16px;background:var(--magenta);}
+  .node{position:relative;display:block;padding:2px 0 22px;}
+  .node::before{content:"";position:absolute;left:-31px;top:4px;width:16px;height:16px;border-radius:50%;z-index:1;
+    background:#fff;border:3px solid var(--magenta);box-shadow:0 0 0 3px var(--sky-soft);}
+  .node.origin::before{background:linear-gradient(135deg,var(--sky),var(--magenta));border-color:#fff;}
+  .node.next::before{border-style:dashed;border-color:#c9c3d6;box-shadow:none;}
+  .node .d{font-size:12px;font-weight:800;color:var(--sky);letter-spacing:1px;font-variant-numeric:tabular-nums;}
+  .node .t{margin-top:2px;font-size:16px;font-weight:800;}
+  .node .s{margin-top:2px;font-size:12px;color:var(--ink-soft);}
+  .node.next .t{color:var(--ink-soft);}
+  a.node .t::after{content:" ›";color:var(--magenta);}
+
+  /* ================= 创作者跑马灯 ================= */
+  .creators{overflow:hidden;margin:0 -18px;padding:4px 0;}
+  .marquee{display:flex;white-space:nowrap;width:max-content;animation:marquee 60s linear infinite;}
+  .marquee.rev{animation-direction:reverse;margin-top:10px;}
+  .marquee span{display:inline-block;margin-right:10px;padding:7px 14px;border-radius:18px;font-size:13px;font-weight:700;
+    background:#fff;border:1.5px solid var(--sky-soft);}
+  .marquee.rev span{border-color:var(--magenta-soft);}
+  @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .thanks{margin-top:14px;text-align:center;font-size:13px;color:var(--ink-soft);}
+
+  footer{padding:40px 0 30px;padding-bottom:calc(30px + env(safe-area-inset-bottom));text-align:center;
+    font-size:12px;color:var(--ink-soft);letter-spacing:1px;}
+  footer .bar{width:60px;height:4px;margin:0 auto 12px;border-radius:4px;
+    background:linear-gradient(90deg,var(--sky),var(--magenta));}
+
+  /* ================= 飘落的两色花瓣 / 点一下冒爱心 ================= */
+  #petals{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:5;overflow:hidden;}
+  .petal{position:absolute;top:-6vh;animation:fall linear forwards;}
+  @keyframes fall{0%{transform:translate(0,0) rotate(0);opacity:0}10%{opacity:.9}100%{transform:translate(var(--dx),110vh) rotate(260deg);opacity:.2}}
+  .heart{position:fixed;z-index:6;pointer-events:none;font-size:18px;margin:-10px 0 0 -9px;
+    animation:pop 1s ease-out forwards;}
+  @keyframes pop{from{transform:translate(0,0) scale(.4);opacity:1}to{transform:translate(var(--dx),-70px) scale(1.2);opacity:0}}
+
+  @media (prefers-reduced-motion:reduce){
+    .rb-flow,.marquee,.petal,.scroll-hint i,.chip .dot{animation:none!important;}
+  }
+</style>
+</head>
+<body>
+  <div id="petals"></div>
+
+  <!-- 首屏 -->
+  <header class="hero">
+    <svg class="ribbons" viewBox="0 0 400 800" preserveAspectRatio="none" aria-hidden="true">
+      <path class="rb-sky" d="M-20 120 C 120 40, 180 300, 200 400 S 300 760, 430 690" stroke-width="3" opacity=".35"/>
+      <path class="rb-mag" d="M-20 690 C 100 760, 200 500, 200 400 S 280 40, 430 120" stroke-width="3" opacity=".35"/>
+      <path class="rb-sky rb-flow" d="M-20 120 C 120 40, 180 300, 200 400 S 300 760, 430 690" stroke-width="2"/>
+      <path class="rb-mag rb-flow" d="M-20 690 C 100 760, 200 500, 200 400 S 280 40, 430 120" stroke-width="2"/>
+    </svg>
+    <div class="tag">洋灵</div>
+    <div class="since">成立的第</div>
+    <div class="days" id="days">0</div>
+    <div class="unit">天</div>
+    <div class="dates" id="dates">2016.08.24 — </div>
+    <div class="scroll-hint">往下滑，进入平行时空<i></i></div>
+  </header>
+
+  <main class="wrap">
+    <section>
+      <div class="sec-h"><h2>平行时空</h2><span>点一个进去</span></div>
+      <div id="portals"></div>
+    </section>
+
+    <section>
+      <div class="sec-h"><h2>我们的时间线</h2></div>
+      <div class="timeline" id="timeline"></div>
+    </section>
+
+    <section id="creators-sec" style="display:none">
+      <div class="sec-h"><h2>创作者</h2><span id="creators-count"></span></div>
+      <div class="creators">
+        <div class="marquee" id="mq1"></div>
+        <div class="marquee rev" id="mq2"></div>
+      </div>
+      <div class="thanks">谢谢每一位为洋灵创作的你</div>
+    </section>
+
+    <footer>
+      <div class="bar"></div>
+      yanglingforever.space
+    </footer>
+  </main>
+
+  <script src="/config.js?v=13"></script>
+  <script>
+  /* =========================================================
+     洋灵主页 v2（原型）
+     - 天数：从 2016-08-24 成立纪念日（中国时间）数到今天，和 824 页同一算法
+     - 每个主题的状态读真实资料：门 / 信开了几封、下一扇什么时候开
+     - 创作者名单从已公开的作品里取，不另外维护
+     - 只用 fetch 打 Supabase RPC，旧内核（微信 X5 / 百度）也能跑
+  ========================================================= */
+  var CFG = window.CONFIG || {};
+  function $(s){ return document.querySelector(s); }
+  function esc(s){ return String(s||"").replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function pad2(n){ return ("0" + n).slice(-2); }
+  var CN = 8*3600e3;
+  function cnDate(ms){ var d = new Date(ms + CN); return d.getUTCFullYear()+"."+pad2(d.getUTCMonth()+1)+"."+pad2(d.getUTCDate()); }
+
+  /* ---------- 天数（数字从 0 滚上去） ---------- */
+  var DAYS = Math.floor((Date.now() + CN - Date.UTC(2016, 7, 24)) / 864e5);
+  $("#dates").textContent = "2016.08.24 — " + cnDate(Date.now());
+  (function countUp(){
+    var t0 = Date.now(), dur = 1400, el = $("#days");
+    (function step(){
+      var k = Math.min(1, (Date.now()-t0)/dur), e = 1 - Math.pow(1-k, 3);
+      el.textContent = Math.round(DAYS*e);
+      if(k < 1) requestAnimationFrame(step);
+    })();
+  })();
+
+  /* ---------- 主题清单：以后加主题就加一行 ---------- */
+  var DOOR_SVG = '<svg viewBox="0 0 200 300" aria-hidden="true">' +
+    '<path fill-rule="evenodd" fill="#8a8196" stroke="#231a2c" stroke-width="3" d="M4 300 L4 104 A96 96 0 0 1 196 104 L196 300 Z M30 300 L30 110 A70 70 0 0 1 170 110 L170 300 Z"/>' +
+    '<path d="M30 288 L30 110 A70 70 0 0 1 170 110 L170 288 Z" fill="#ffc861"/>' +
+    '<path d="M170 288 L170 110 A70 70 0 0 0 136 50 L136 288 Z" fill="#5a1d0a" opacity=".35"/>' +
+    '<path d="M30 288 L30 110 L-4 80 L-4 300 Z" fill="#6b3f22" stroke="#1a1020" stroke-width="4"/>' +
+    '<rect x="0" y="288" width="200" height="12" rx="3" fill="#6f6680" stroke="#231a2c" stroke-width="3"/>' +
+    '<text x="100" y="230" font-size="60" text-anchor="middle">🎃</text></svg>';
+
+  var THEMES = [
+    { key:"halloween", name:"万圣之夜", date:"10.31", url:"/halloween/", rpc:"public_get_doors",
+      desc:"一扇扇门，到时间就能推开", unit:"扇门" },
+    { key:"824", name:"树信归期 · 824", date:"08.24", url:"/?from=home", rpc:"public_get_letters",
+      desc:"樱花树下的 52 封信", unit:"封信", cover:(CFG.HOME_COVERS||{})["824"] || "/assets/sakura-bg.jpg" }
+  ];
+
+  function rpc(fn){
+    return fetch(CFG.SUPABASE_URL + "/rest/v1/rpc/" + fn, {
+      method:"POST", headers:{ "apikey":CFG.SUPABASE_ANON_KEY, "Content-Type":"application/json" }, body:"{}"
+    }).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; });
+  }
+
+  // 按真实资料判断状态：布置中 / 即将开启 / 进行中 / 回顾
+  function statusOf(list){
+    var now = Date.now();
+    var total = list.length, opened = 0, next = null;
+    list.forEach(function(x){
+      if(x.unlocked) opened++;
+      else if(x.unlock_at){ var t = Date.parse(x.unlock_at); if(t > now && (next === null || t < next)) next = t; }
+    });
+    if(!total)           return { k:"prep", label:"布置中" };
+    if(opened === total) return { k:"past", label:"回顾", opened:opened, total:total };
+    if(opened === 0)     return { k:"soon", label:"即将开启", opened:0, total:total, next:next };
+    return { k:"live", label:"进行中", opened:opened, total:total, next:next };
+  }
+  var RANK = { live:0, soon:1, prep:2, past:3 };
+
+  function countdown(ms){
+    var s = Math.max(0, Math.floor(ms/1000)), d = Math.floor(s/86400);
+    var hms = pad2(Math.floor(s%86400/3600)) + ":" + pad2(Math.floor(s%3600/60)) + ":" + pad2(s%60);
+    return d > 0 ? d + " 天 " + hms : hms;
+  }
+  function statLine(t){
+    var st = t.st;
+    if(st.k === "prep") return "正在准备中，敬请期待";
+    if(st.k === "past") return st.total + " " + t.unit + "，全部开启";
+    var s = "已开启 " + st.opened + " / " + st.total + " " + t.unit;
+    if(st.next) s += ' · 下一' + t.unit.slice(-1) + ' <span data-next="' + st.next + '">' + countdown(st.next - Date.now()) + '</span>';
+    return s;
+  }
+
+  function portalHTML(t, big){
+    var chip = '<span class="chip ' + t.st.k + '">' + (t.st.k === "live" ? '<i class="dot"></i>' : '') + t.st.label + '</span>';
+    var art = t.key === "halloween"
+      ? '<div class="art">' + DOOR_SVG + '</div>'
+      : '<div class="art" style="background-image:url(\'' + esc(t.cover) + '\')"></div>';
+    return '<a class="portal t-' + t.key + (big ? ' big' : '') + '" href="' + t.url + '">' + chip + art +
+      '<div class="body"><div class="row"><h3>' + esc(t.name) + '</h3><span class="go">进入</span></div>' +
+      '<p>' + esc(t.desc) + '</p><div class="stat">' + statLine(t) + '</div></div></a>';
+  }
+
+  function render(){
+    // 进行中 > 即将开启 > 布置中 > 回顾；最前面那个放大
+    var list = THEMES.slice().sort(function(a,b){ return RANK[a.st.k] - RANK[b.st.k]; });
+    $("#portals").innerHTML = list.map(function(t,i){ return portalHTML(t, i === 0); }).join("");
+
+    // 时间线：成立 → 各主题（按月份日期排）→ 下一站
+    var nodes = '<div class="node origin"><div class="d">2016.08.24</div><div class="t">洋灵成立</div><div class="s">故事从这一天开始</div></div>';
+    THEMES.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; }).forEach(function(t){
+      nodes += '<a class="node" href="' + t.url + '"><div class="d">2026.' + t.date + '</div><div class="t">' + esc(t.name) +
+        '</div><div class="s">' + esc(t.desc) + ' · ' + t.st.label + '</div></a>';
+    });
+    nodes += '<div class="node next"><div class="d">NEXT</div><div class="t">下一站……</div><div class="s">敬请期待</div></div>';
+    $("#timeline").innerHTML = nodes;
+  }
+
+  // 倒计时每秒走
+  setInterval(function(){
+    var els = document.querySelectorAll("[data-next]");
+    for(var i = 0; i < els.length; i++) els[i].textContent = countdown(+els[i].getAttribute("data-next") - Date.now());
+  }, 1000);
+
+  /* ---------- 创作者跑马灯：从已公开作品取作者名（去重） ---------- */
+  function renderCreators(names){
+    if(!names.length) return;
+    $("#creators-sec").style.display = "";
+    $("#creators-count").textContent = names.length + " 位";
+    var half = Math.ceil(names.length/2);
+    function row(arr){ var h = arr.map(function(n){ return "<span>" + esc(n) + "</span>"; }).join(""); return h + h; } // 复制一份才能无缝循环
+    $("#mq1").innerHTML = row(names.slice(0, half));
+    $("#mq2").innerHTML = row(names.slice(half).length ? names.slice(half) : names);
+  }
+
+  THEMES.forEach(function(t){ t.st = { k:"prep", label:"读取中" }; });
+  render();
+  Promise.all(THEMES.map(function(t){ return rpc(t.rpc); })).then(function(res){
+    var names = [], seen = {};
+    res.forEach(function(list, i){
+      list = Array.isArray(list) ? list : [];
+      THEMES[i].st = statusOf(list);
+      list.forEach(function(x){ var n = (x.author_name||"").trim(); if(n && !seen[n]){ seen[n] = 1; names.push(n); } });
+    });
+    render();
+    renderCreators(names);
+  });
+
+  /* ---------- 两色花瓣 + 点一下冒爱心 ---------- */
+  var PETAL_COLORS = ["#32b5e1", "#8fd3ee", "#f90092", "#ff8ccc"];
+  function spawnPetal(){
+    if(document.hidden) return;
+    var p = document.createElement("div"), size = 8 + Math.random()*10, c = PETAL_COLORS[Math.floor(Math.random()*4)];
+    p.className = "petal";
+    p.style.left = (Math.random()*100) + "vw";
+    p.style.width = p.style.height = size + "px";
+    p.style.setProperty("--dx", (Math.random()*24 - 12) + "vw");
+    p.style.animationDuration = (9 + Math.random()*7) + "s";
+    p.innerHTML = '<svg width="100%" height="100%" viewBox="0 0 20 20"><path d="M10 1 C15 5, 18 11, 10 19 C2 11, 5 5, 10 1 Z" fill="' + c + '" opacity=".75"/></svg>';
+    $("#petals").appendChild(p);
+    setTimeout(function(){ p.remove(); }, 17000);
+  }
+  setInterval(spawnPetal, 900);
+  for(var i = 0; i < 6; i++) setTimeout(spawnPetal, i*300);
+
+  document.addEventListener("click", function(e){
+    if(e.target.closest && e.target.closest("a")) return;       // 点入口就直接走，不冒爱心
+    for(var k = 0; k < 2; k++){
+      var h = document.createElement("div");
+      h.className = "heart";
+      h.textContent = k ? "💗" : "💙";
+      h.style.left = e.clientX + "px"; h.style.top = e.clientY + "px";
+      h.style.setProperty("--dx", (k ? 18 : -18) + "px");
+      document.body.appendChild(h);
+      (function(el){ setTimeout(function(){ el.remove(); }, 1000); })(h);
+    }
+  });
+  </script>
+</body>
+</html>

@@ -53,13 +53,27 @@
   .tab{border:none;border-radius:22px;padding:9px 22px;font-size:14px;font-weight:700;cursor:pointer;
     background:#fff;color:var(--ink);box-shadow:0 3px 10px rgba(120,80,140,.12);}
   .tab.on{background:var(--magenta);color:#fff;}
-  /* 主题切换：824 / 万圣节 */
-  .themes{display:flex;justify-content:center;margin:0 auto 12px;background:#fff;border-radius:26px;padding:4px;
-    width:max-content;max-width:100%;box-shadow:0 3px 10px rgba(120,80,140,.12);}
-  .theme-btn{border:none;background:none;border-radius:22px;padding:8px 18px;font-size:14px;font-weight:700;
-    cursor:pointer;color:var(--ink);font-family:inherit;}
-  .theme-btn.on{background:var(--ink);color:#fff;}
-  .theme-btn[data-theme="halloween"].on{background:#ff7a1a;}
+  /* 正在编辑的主题：整条用主题色，下拉切换 —— 主题再多也放得下，一眼看得出在改哪个 */
+  .theme-bar{max-width:1100px;margin:0 auto 12px;display:flex;align-items:center;flex-wrap:wrap;
+    padding:10px 14px;border-radius:14px;color:#fff;background:var(--theme-color,#3a3550);
+    box-shadow:0 6px 18px rgba(0,0,0,.15);}
+  .theme-bar .now{font-size:15px;font-weight:800;margin-right:auto;padding:4px 0;}
+  .theme-bar .now small{display:block;font-size:11px;font-weight:600;opacity:.85;letter-spacing:1px;}
+  .theme-bar select{width:auto;min-width:180px;margin:4px 0;border:none;font-weight:700;color:var(--ink);}
+  @media(max-width:520px){ .theme-bar select{width:100%;} }
+  /* 主题色也点在列表卡片顶上 */
+  #panel .card{border-top:4px solid var(--theme-color,transparent);}
+
+  /* 分页：按钮做大，手机好点 */
+  .pager{display:flex;align-items:center;flex-wrap:wrap;margin-top:12px;font-size:13px;color:#7a7590;}
+  .pager .total{margin-right:auto;padding:6px 0;}
+  .pager .nav{display:flex;align-items:center;}
+  .pager .pg{border:1.5px solid #e3e8ef;background:#fff;color:var(--ink);border-radius:10px;min-width:44px;height:40px;
+    padding:0 12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .pager .pg:disabled{opacity:.35;cursor:default;}
+  .pager .pno{margin:0 10px;font-weight:700;color:var(--ink);white-space:nowrap;}
+  .pager select{width:auto;margin:0 0 0 12px;padding:8px;font-size:13px;}
+  @media(max-width:520px){ .pager .total{width:100%;} .pager .nav{flex:1;justify-content:space-between;} }
   .sec-title{font-size:13px;font-weight:700;color:var(--magenta);margin:14px 0 8px;
     padding-top:12px;border-top:1px dashed #e8dcc8;}
   .sec-title:first-child{border-top:none;padding-top:0;margin-top:0;}
@@ -155,9 +169,9 @@
   <div id="panel" class="hidden">
     <h1 id="panel-title">树信归期 · 管理后台</h1>
 
-    <div class="themes">
-      <button class="theme-btn on" data-theme="824">🌸 824 · 树信归期</button>
-      <button class="theme-btn"    data-theme="halloween">🎃 万圣节</button>
+    <div class="theme-bar">
+      <div class="now"><small>正在编辑的主题</small><span id="theme-now"></span></div>
+      <select id="theme-select" aria-label="切换主题"></select>
     </div>
 
     <div class="tabs">
@@ -195,6 +209,7 @@
             <tbody id="letters-body"></tbody>
           </table>
         </div>
+        <div class="pager" id="pager-letters"></div>
       </div>
     </div>
 
@@ -226,6 +241,7 @@
             <tbody id="doors-body"></tbody>
           </table>
         </div>
+        <div class="pager" id="pager-doors"></div>
       </div>
     </div>
 
@@ -251,6 +267,7 @@
             <tbody id="authors-body"></tbody>
           </table>
         </div>
+        <div class="pager" id="pager-authors"></div>
       </div>
     </div>
   </div>
@@ -455,34 +472,97 @@
   $("#logoutBtn").onclick=()=>{ localStorage.removeItem("yl_admin_key"); location.reload(); };
   $("#previewBtn").onclick=()=>{ window.open("./index.html?preview="+encodeURIComponent(KEY),"_blank"); };
 
-  /* ================= 主题切换：824 / 万圣节 =================
-     第一个分页跟着主题变（824 = 信件、万圣节 = 门），作者分页两边共用 */
+  /* ================= 主题 =================
+     每个主题玩法不同，各自一套资料和分页（panel）。
+     以后加主题：在 THEMES 加一行 + 做它自己的 panel，下拉选单自动多一项。
+     第一个分页跟着主题变（824 = 信件、万圣节 = 门），作者分页所有主题共用。 */
+  const THEMES = [
+    { key:"824",       icon:"🌸", name:"树信归期 · 824", color:"#f90092", mainTab:"📩 信件", panel:"#tab-letters" },
+    { key:"halloween", icon:"🎃", name:"万圣之夜",       color:"#ff7a1a", mainTab:"🚪 门",   panel:"#tab-doors" }
+  ];
   const THEME_KEY = "yl_admin_theme";
-  let THEME = localStorage.getItem(THEME_KEY) === "halloween" ? "halloween" : "824";
+  let THEME = localStorage.getItem(THEME_KEY);
+  if(!THEMES.some(t=>t.key===THEME)) THEME = THEMES[0].key;
   let currentTab = "letters";
+  const themeOf = ()=> THEMES.find(t=>t.key===THEME);
 
   function showTab(tab){
     currentTab = tab;
     $$(".tab").forEach(x=>x.classList.toggle("on", x.dataset.tab===tab));
     const main = tab === "letters";
-    $("#tab-letters").classList.toggle("hidden", !(main && THEME==="824"));
-    $("#tab-doors").classList.toggle("hidden",   !(main && THEME==="halloween"));
+    THEMES.forEach(t=> $(t.panel).classList.toggle("hidden", !(main && t.key===THEME)));
     $("#tab-authors").classList.toggle("hidden", tab!=="authors");
   }
   function applyTheme(){
-    const hw = THEME === "halloween";
-    $$(".theme-btn").forEach(b=>b.classList.toggle("on", b.dataset.theme===THEME));
-    $("#panel-title").textContent = hw ? "万圣之夜 · 管理后台" : "树信归期 · 管理后台";
-    $("#tab-main").textContent    = hw ? "🚪 门" : "📩 信件";
+    const t = themeOf();
+    document.documentElement.style.setProperty("--theme-color", t.color);
+    $("#theme-now").textContent   = `${t.icon} ${t.name}`;
+    $("#theme-select").value      = t.key;
+    $("#panel-title").textContent = `${t.name} · 管理后台`;
+    $("#tab-main").textContent    = t.mainTab;
     showTab(currentTab);
   }
-  $$(".theme-btn").forEach(b=> b.onclick=()=>{
-    THEME = b.dataset.theme;
+  $("#theme-select").innerHTML = THEMES.map(t=>`<option value="${t.key}">${t.icon} ${esc(t.name)}</option>`).join("");
+  $("#theme-select").onchange = (e)=>{
+    THEME = e.target.value;
     localStorage.setItem(THEME_KEY, THEME);
     applyTheme();
-  });
+    toast(`已切换到「${themeOf().name}」`);
+  };
   $$(".tab").forEach(t=> t.onclick=()=> showTab(t.dataset.tab));
   applyTheme();
+
+  /* ================= 分页 =================
+     信件 / 门 / 作者 三个列表共用；每页 30 或 50 笔（记在本机）。
+     搜索时回到第 1 页；保存、删除后停在原本那页（超出就退到最后一页）。 */
+  const PAGE_SIZE_KEY = "yl_admin_page_size";
+  let PAGE_SIZE = localStorage.getItem(PAGE_SIZE_KEY) === "50" ? 50 : 30;
+  const PAGE = { letters:0, doors:0, authors:0 };
+  const RERENDER = { letters:()=>renderLetters(), doors:()=>renderDoors(), authors:()=>renderAuthors() };
+
+  function paginate(list, key){
+    const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+    PAGE[key] = Math.min(Math.max(0, PAGE[key]), pages - 1);
+    const start = PAGE[key] * PAGE_SIZE;
+    return { rows: list.slice(start, start + PAGE_SIZE), pages, start };
+  }
+  // 新增完：清掉搜索、翻到它所在那页，直接打开编辑（分页后不一定在眼前）
+  function showNew(key, list, id, openModal){
+    $(`#q-${key}`).value = "";
+    const idx = list.findIndex(x=>x.id===id);
+    if(idx >= 0) PAGE[key] = Math.floor(idx / PAGE_SIZE);
+    RERENDER[key]();
+    if(idx >= 0) openModal(id);
+    toast("已新增，直接编辑吧");
+  }
+  function renderPager(key, total, pages){
+    const el = $(`#pager-${key}`);
+    if(!total){ el.innerHTML = ""; return; }
+    const p = PAGE[key];
+    const from = p*PAGE_SIZE + 1, to = Math.min(total, (p+1)*PAGE_SIZE);
+    el.innerHTML = `
+      <span class="total">共 ${total} 笔 · 显示 ${from}–${to}</span>
+      <span class="nav">
+        <button class="pg" data-go="-1" ${p<=0?"disabled":""} aria-label="上一页">‹ 上一页</button>
+        <span class="pno">${p+1} / ${pages}</span>
+        <button class="pg" data-go="1" ${p>=pages-1?"disabled":""} aria-label="下一页">下一页 ›</button>
+      </span>
+      <select aria-label="每页笔数">
+        <option value="30" ${PAGE_SIZE===30?"selected":""}>每页 30</option>
+        <option value="50" ${PAGE_SIZE===50?"selected":""}>每页 50</option>
+      </select>`;
+    $$(".pg", el).forEach(b=> b.onclick = ()=>{
+      PAGE[key] += +b.dataset.go;
+      RERENDER[key]();
+      el.closest(".card").scrollIntoView({ behavior:"smooth", block:"start" });
+    });
+    $("select", el).onchange = (e)=>{
+      PAGE_SIZE = +e.target.value;
+      localStorage.setItem(PAGE_SIZE_KEY, String(PAGE_SIZE));
+      Object.keys(PAGE).forEach(k=> PAGE[k] = 0);
+      Object.values(RERENDER).forEach(fn=> fn());
+    };
+  }
 
   /* ================= 作者归属：一位作者可以有多个作品 ================= */
   // 作者 id → 他名下的所有作品（824 的信 + 万圣节的门，门的标题前面加 🎃）
@@ -495,7 +575,7 @@
   function availableAuthors(){ return AUTHORS; }
 
   /* ================= 信件列表 ================= */
-  $("#q-letters").oninput = renderLetters;
+  $("#q-letters").oninput = ()=>{ PAGE.letters = 0; renderLetters(); };
 
   function renderLetters(){
     const q = ($("#q-letters").value || "").trim().toLowerCase();
@@ -523,11 +603,14 @@
       body.innerHTML = `<tr class="empty-row"><td colspan="6">${
         LETTERS.length ? "没有符合搜索的信件" : "还没有信，点上面「新增一封信」或「初始化 52 封」开始。"
       }</td></tr>`;
+      renderPager("letters", 0);
       return;
     }
 
-    const dragOK = !q;   // 搜索状态下不给拖（顺序会误导）
-    body.innerHTML = rows.map(L=>{
+    const pg = paginate(rows, "letters");
+    renderPager("letters", rows.length, pg.pages);
+    const dragOK = !q;   // 搜索状态下不给拖（顺序会误导）；分页时只能在同一页里拖
+    body.innerHTML = pg.rows.map(L=>{
       const a = AUTHORS.find(x=>String(x.id)===String(L.author_id));
       return `<tr data-id="${L.id}" class="${L.is_live?'live-row':''}">
         <td>${dragOK?'<span class="drag" title="拖动调整开启时间">⠿</span>':''}</td>
@@ -689,7 +772,7 @@
 
   $("#reloadBtn").onclick=async ()=>{ try{ await reloadAll(); toast("已刷新"); }catch(e){ toast("刷新失败"); } };
   $("#addBtn").onclick=async ()=>{
-    try{ await rpc("admin_add_letter",{p_key:KEY}); await reloadAll(); toast("已新增一封，点它编辑"); }
+    try{ const id = await rpc("admin_add_letter",{p_key:KEY}); await reloadAll(); showNew("letters", LETTERS, id, openLetterModal); }
     catch(e){ toast("新增失败"); }
   };
   $("#initBtn").onclick=async ()=>{
@@ -713,7 +796,7 @@
     return `${+v.slice(5,7)}月${+v.slice(8,10)}日 ${v.slice(11,16)}`;
   }
 
-  $("#q-doors").oninput = renderDoors;
+  $("#q-doors").oninput = ()=>{ PAGE.doors = 0; renderDoors(); };
 
   function renderDoors(){
     const body = $("#doors-body");
@@ -722,6 +805,7 @@
       warn.innerHTML = `<span class="badge warn">⚠️ 资料库还没有门的资料表</span>
         <span class="muted"> 请先照 SCHEMA.md 第 10 节在 Supabase 执行 SQL</span>`;
       body.innerHTML = `<tr class="empty-row"><td colspan="6">资料表建好后，这里会列出所有门。</td></tr>`;
+      renderPager("doors", 0);
       return;
     }
     const noTime = DOORS.filter(D=>!D.unlock_at).length;
@@ -740,11 +824,14 @@
       body.innerHTML = `<tr class="empty-row"><td colspan="6">${
         DOORS.length ? "没有符合搜索的门" : "还没有门，点上面「新增一扇门」开始。"
       }</td></tr>`;
+      renderPager("doors", 0);
       return;
     }
 
+    const pg = paginate(rows, "doors");
+    renderPager("doors", rows.length, pg.pages);
     const nowMs = Date.now();
-    body.innerHTML = rows.map(({D,i})=>{
+    body.innerHTML = pg.rows.map(({D,i})=>{
       const a = AUTHORS.find(x=>String(x.id)===String(D.author_id));
       const passed = D.unlock_at && Date.parse(D.unlock_at) <= nowMs;
       return `<tr data-id="${D.id}" class="${D.is_live?'live-row':''}">
@@ -834,7 +921,7 @@
 
   $("#addDoorBtn").onclick = async ()=>{
     if(!DOORS_READY){ toast("请先照 SCHEMA.md 第 10 节建好 doors 资料表"); return; }
-    try{ await rpc("admin_add_door",{p_key:KEY}); await reloadDoors(); toast("已新增一扇门，点它编辑"); }
+    try{ const id = await rpc("admin_add_door",{p_key:KEY}); await reloadDoors(); showNew("doors", DOORS, id, openDoorModal); }
     catch(e){ toast("新增失败"); }
   };
   $("#reloadDoorBtn").onclick = async ()=>{ try{ await reloadAll(); toast("已刷新"); }catch(e){ toast("刷新失败"); } };
@@ -842,7 +929,7 @@
   $("#logoutDoorBtn").onclick = ()=> $("#logoutBtn").click();
 
   /* ================= 作者列表 ================= */
-  $("#q-authors").oninput = renderAuthors;
+  $("#q-authors").oninput = ()=>{ PAGE.authors = 0; renderAuthors(); };
 
   function renderAuthors(){
     const q = ($("#q-authors").value || "").trim().toLowerCase();
@@ -853,10 +940,13 @@
       body.innerHTML = `<tr class="empty-row"><td colspan="4">${
         AUTHORS.length ? "没有符合搜索的作者" : "还没有作者，点上面「新增作者」开始。"
       }</td></tr>`;
+      renderPager("authors", 0);
       return;
     }
 
-    body.innerHTML = rows.map(A=>{
+    const pg = paginate(rows, "authors");
+    renderPager("authors", rows.length, pg.pages);
+    body.innerHTML = pg.rows.map(A=>{
       const works = authorWorks(A.id);
       return `<tr data-id="${A.id}">
         <td style="font-weight:700">${esc(A.name)}</td>
@@ -914,7 +1004,7 @@
 
   $("#reloadAuthorBtn").onclick=async ()=>{ try{ await reloadAll(); toast("已刷新"); }catch(e){ toast("刷新失败"); } };
   $("#addAuthorBtn").onclick=async ()=>{
-    try{ await rpc("admin_add_author",{p_key:KEY}); await reloadAll(); toast("已新增作者，点它改名"); }
+    try{ const id = await rpc("admin_add_author",{p_key:KEY}); await reloadAll(); showNew("authors", AUTHORS, id, openAuthorModal); }
     catch(e){ toast("新增失败"); }
   };
 
