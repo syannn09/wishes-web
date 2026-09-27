@@ -50,5 +50,22 @@ window.CONFIG = {
     "./assets/stickers/wrong/11.mp4",
     "./assets/stickers/wrong/12.mp4",
     "./assets/stickers/wrong/13.mp4"
-  ]
+  ],
+
+  // 万圣节主题（/halloween）。路径一律用「/」开头的绝对路径 ——
+  // 页面在子目录里，写 ./ 会找错地方。
+  // 图片留空 = 用内建的占位画面（CSS / SVG 画的），等设计稿到了再填。
+  HALLOWEEN: {
+    TITLE:    "万圣之夜",
+    SUBTITLE: "左右滑动找门 · 时间到了就能推开",
+    BG_IMAGE:    "",   // 背景图，例如 "/assets/halloween/bg.webp"
+    FRAME_IMAGE: "",   // 门框（所有门共用），例如 "/assets/halloween/frame.webp"
+    DOOR_SOUND:  "/assets/halloween/door-open.mp3"
+  },
+
+  // 主题选择页（/home）的封面图，留空用内建占位
+  HOME_COVERS: {
+    "824":       "/assets/sakura-bg.jpg",
+    "halloween": ""
+  }
 };

@@ -107,6 +107,8 @@ if(window.CONFIG && window.CONFIG.BG_IMAGE){
   document.documentElement.style.backgroundImage = `url("${window.CONFIG.BG_IMAGE}")`;
 }
 if(PREVIEW_KEY) document.body.classList.add("is-preview");
+// 从 /home 选主题点进来才显示「返回」；直接开根网址的粉丝看不到，画面和原本一样
+if(QS.get("from") === "home") document.body.classList.add("from-home");
 
 /* =========================================================
    信封网格

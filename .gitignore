@@ -2,3 +2,5 @@
 .claude/
 # 表情包原始 GIF（本機備份，不上傳；線上用壓好的 .webp）
 assets/stickers/_original/
+# 音效原始档（本機備份；線上用剪好的 door-open.mp3）
+assets/halloween/_original/

@@ -439,3 +439,182 @@ anon key 本来就公开在前端，所以这是刻意的取舍：素材本身�
 ```sql
 drop policy if exists "messages_public_insert" on messages;
 ```
+
+---
+
+## 10. 万圣节主题：`doors` 表（新增，不动 824）
+
+万圣节的「门」**另开一张表**，不塞进 `letters`：
+824 现有的 `public_get_letters` / `admin_list_letters` / `admin_init_slots` / `admin_add_letter`
+**一个都不用改**，824 页面和后台 824 部分行为完全不变。
+作者表 `authors` 两个主题共用。
+
+| | 824 `letters` | 万圣节 `doors` |
+|---|---|---|
+| 解锁 | `slot` = 824 当天第几分钟 | `unlock_at` = **完整日期时间**（每扇门各自设定） |
+| 门的外观 | — | `door_image`（每扇门可以不一样，空则用内建占位门） |
+| 作者 | 永远下发（牵红线要用） | **解锁后才下发**（没有牵红线，免得剧透） |
+
+### 10.1 建表
+
+```sql
+create table if not exists doors (
+  id           bigserial primary key,
+  title        text default '',
+  unlock_at    timestamptz,                 -- 开启时间；空 = 还没定，一直锁着
+  door_image   text default '',             -- 门的外观（透明底 PNG / WebP）；空则用内建占位门
+  teaser_text  text default '',             -- 预告文字（未解锁时显示）
+  teaser_image text default '',             -- 预告图（前端会打码模糊）
+  body         text default '',
+  images       jsonb default '[]'::jsonb,
+  videos       jsonb default '[]'::jsonb,
+  link         text default '',
+  link_text    text default '',
+  author_id    bigint references authors(id) on delete set null,
+  is_live      boolean default false,
+  created_at   timestamptz default now()
+);
+
+create index if not exists doors_unlock_idx on doors(unlock_at);
+
+-- 开 RLS 但不给任何 select 策略：粉丝端只能走下面的 RPC，
+-- 直接查表拿不到未解锁的内容
+alter table doors enable row level security;
+```
+
+### 10.2 粉丝端 RPC（未解锁不下发内容）
+
+`server_now` 一起回传：前端用它校正手机时钟，倒计时才准。
+
+```sql
+create or replace function public_get_doors()
+returns table (
+  id bigint, title text, unlock_at timestamptz, unlocked boolean,
+  door_image text, teaser_text text, teaser_image text,
+  body text, images jsonb, videos jsonb, link text, link_text text,
+  author_id bigint, author_name text, author_bio text,
+  server_now timestamptz
+)
+language plpgsql security definer set search_path = public as $$
+begin
+  return query
+  select
+    D.id, D.title, D.unlock_at,
+    (D.unlock_at is not null and D.unlock_at <= now())                       as unlocked,
+    D.door_image, D.teaser_text, D.teaser_image,
+    case when D.unlock_at <= now() then D.body      else '' end,
+    case when D.unlock_at <= now() then coalesce(D.images,'[]'::jsonb) else '[]'::jsonb end,
+    case when D.unlock_at <= now() then coalesce(D.videos,'[]'::jsonb) else '[]'::jsonb end,
+    case when D.unlock_at <= now() then D.link      else '' end,
+    case when D.unlock_at <= now() then D.link_text else '' end,
+    case when D.unlock_at <= now() then D.author_id else null end,
+    case when D.unlock_at <= now() then coalesce(A.name,'') else '' end,
+    case when D.unlock_at <= now() then coalesce(A.bio,'')  else '' end,
+    now()
+  from doors D
+  left join authors A on A.id = D.author_id
+  where D.is_live = true
+  order by D.unlock_at asc nulls last, D.id asc;
+end; $$;
+
+grant execute on function public_get_doors() to anon;
+```
+
+> `unlock_at` 为空时 `D.unlock_at <= now()` 是 NULL，`case when NULL` 走 `else`，内容一样不下发。
+
+### 10.3 管理员预览（带密钥，全解锁）
+
+```sql
+create or replace function preview_get_doors(p_key text)
+returns table (
+  id bigint, title text, unlock_at timestamptz, unlocked boolean,
+  door_image text, teaser_text text, teaser_image text,
+  body text, images jsonb, videos jsonb, link text, link_text text,
+  author_id bigint, author_name text, author_bio text,
+  server_now timestamptz
+)
+language plpgsql security definer set search_path = public as $$
+begin
+  perform _check_key(p_key);
+  return query
+  select D.id, D.title, D.unlock_at, true,
+         D.door_image, D.teaser_text, D.teaser_image,
+         D.body, coalesce(D.images,'[]'::jsonb), coalesce(D.videos,'[]'::jsonb),
+         D.link, D.link_text,
+         D.author_id, coalesce(A.name,''), coalesce(A.bio,''),
+         now()
+  from doors D
+  left join authors A on A.id = D.author_id
+  where D.is_live = true
+  order by D.unlock_at asc nulls last, D.id asc;
+end; $$;
+
+grant execute on function preview_get_doors(text) to anon;
+```
+
+### 10.4 后台 RPC
+
+```sql
+create or replace function admin_list_doors(p_key text)
+returns setof doors
+language plpgsql security definer set search_path = public as $$
+begin
+  perform _check_key(p_key);
+  return query select * from doors order by unlock_at asc nulls last, id asc;
+end; $$;
+
+create or replace function admin_add_door(p_key text)
+returns bigint
+language plpgsql security definer set search_path = public as $$
+declare new_id bigint;
+begin
+  perform _check_key(p_key);
+  insert into doors(title) values('（未命名）') returning id into new_id;
+  return new_id;
+end; $$;
+
+create or replace function admin_update_door(
+  p_key text, p_id bigint,
+  p_title text, p_unlock_at timestamptz, p_door_image text,
+  p_teaser_text text, p_teaser_image text,
+  p_body text, p_images text, p_videos text,
+  p_link text, p_link_text text,
+  p_author_id bigint, p_is_live boolean)
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform _check_key(p_key);
+  update doors set
+    title=p_title, unlock_at=p_unlock_at, door_image=p_door_image,
+    teaser_text=p_teaser_text, teaser_image=p_teaser_image,
+    body=p_body,
+    images=coalesce(nullif(p_images,'')::jsonb, '[]'::jsonb),
+    videos=coalesce(nullif(p_videos,'')::jsonb, '[]'::jsonb),
+    link=p_link, link_text=p_link_text,
+    author_id=p_author_id, is_live=p_is_live
+  where id=p_id;
+end; $$;
+
+create or replace function admin_delete_door(p_key text, p_id bigint)
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform _check_key(p_key);
+  delete from doors where id=p_id;
+end; $$;
+
+grant execute on function admin_list_doors(text) to anon;
+grant execute on function admin_add_door(text)   to anon;
+grant execute on function admin_update_door(text,bigint,text,timestamptz,text,text,text,text,text,text,text,text,bigint,boolean) to anon;
+grant execute on function admin_delete_door(text,bigint) to anon;
+```
+
+### 10.5 时区
+
+- `unlock_at` 是 `timestamptz`，存的是绝对时间点，和谁的手机在哪个时区无关。
+- 后台输入框按**中国时间**（+08:00）填写与显示。
+- 判定解锁用服务端 `now()`，改手机时间没用。
+
+### 10.6 素材
+
+门的外观图、预告图、内容图片 / 影片都沿用第 8 节的 `letters` bucket，不用另建。

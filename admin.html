@@ -53,6 +53,13 @@
   .tab{border:none;border-radius:22px;padding:9px 22px;font-size:14px;font-weight:700;cursor:pointer;
     background:#fff;color:var(--ink);box-shadow:0 3px 10px rgba(120,80,140,.12);}
   .tab.on{background:var(--magenta);color:#fff;}
+  /* 主题切换：824 / 万圣节 */
+  .themes{display:flex;justify-content:center;margin:0 auto 12px;background:#fff;border-radius:26px;padding:4px;
+    width:max-content;max-width:100%;box-shadow:0 3px 10px rgba(120,80,140,.12);}
+  .theme-btn{border:none;background:none;border-radius:22px;padding:8px 18px;font-size:14px;font-weight:700;
+    cursor:pointer;color:var(--ink);font-family:inherit;}
+  .theme-btn.on{background:var(--ink);color:#fff;}
+  .theme-btn[data-theme="halloween"].on{background:#ff7a1a;}
   .sec-title{font-size:13px;font-weight:700;color:var(--magenta);margin:14px 0 8px;
     padding-top:12px;border-top:1px dashed #e8dcc8;}
   .sec-title:first-child{border-top:none;padding-top:0;margin-top:0;}
@@ -146,10 +153,15 @@
 
   <!-- 管理区 -->
   <div id="panel" class="hidden">
-    <h1>树信归期 · 管理后台</h1>
+    <h1 id="panel-title">树信归期 · 管理后台</h1>
+
+    <div class="themes">
+      <button class="theme-btn on" data-theme="824">🌸 824 · 树信归期</button>
+      <button class="theme-btn"    data-theme="halloween">🎃 万圣节</button>
+    </div>
 
     <div class="tabs">
-      <button class="tab on" data-tab="letters">📩 信件</button>
+      <button class="tab on" data-tab="letters" id="tab-main">📩 信件</button>
       <button class="tab"    data-tab="authors">👤 作者</button>
     </div>
 
@@ -181,6 +193,37 @@
               <th style="width:120px"></th>
             </tr></thead>
             <tbody id="letters-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 万圣节：门 ============ -->
+    <div id="tab-doors" class="hidden">
+      <div class="card">
+        <div class="row" style="margin-bottom:12px;">
+          <button class="btn small" id="addDoorBtn">＋ 新增一扇门</button>
+          <button class="btn ghost small" id="reloadDoorBtn">刷新</button>
+          <button class="btn ghost small" id="previewDoorBtn">预览粉丝页</button>
+          <button class="btn ghost small" id="logoutDoorBtn" style="margin-left:auto;">退出</button>
+        </div>
+        <div class="search"><input id="q-doors" placeholder="搜索门的标题 或 作者名…" /></div>
+        <p class="muted" style="margin:10px 0 0;">
+          每扇门各自设<b>开启日期 + 时间</b>（中国时间），粉丝页按开启时间从早到晚排。
+          没设时间的门会<b>一直锁着</b>。点整行打开编辑。「上线」的门才会出现在粉丝页。
+        </p>
+        <div id="doors-warn" class="muted" style="margin-top:8px;"></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:40px">#</th>
+              <th style="width:130px">开启</th>
+              <th>标题</th>
+              <th style="width:130px">作者</th>
+              <th style="width:78px">状态</th>
+              <th style="width:90px"></th>
+            </tr></thead>
+            <tbody id="doors-body"></tbody>
           </table>
         </div>
       </div>
@@ -264,6 +307,60 @@
     </div>
   </div>
 
+  <!-- ============ 门编辑弹窗（万圣节）============ -->
+  <div class="modal-bg" id="door-modal">
+    <div class="modal">
+      <div class="mhead">
+        <h3 id="dm-title">编辑门</h3>
+        <button class="x" data-close-modal>×</button>
+      </div>
+
+      <div class="sec-title">基本</div>
+      <label>标题</label>
+      <input class="d-title" placeholder="例如：南瓜灯下的约定"/>
+      <div class="grid2">
+        <div>
+          <label>开启日期时间（中国时间）</label>
+          <input class="d-unlock" type="datetime-local" />
+        </div>
+        <div>
+          <label>作者</label>
+          <select class="d-author"></select>
+        </div>
+      </div>
+      <label class="row" style="gap:7px;margin-bottom:12px;">
+        <input type="checkbox" class="d-live" style="width:auto;margin:0;"/>
+        <span style="font-size:14px;font-weight:700;color:var(--ink)">上线（粉丝页可见）</span>
+      </label>
+      <label>门的外观（透明底 PNG / WebP；不放就用内建的占位门）</label>
+      <div id="dm-door-up"></div>
+
+      <div class="sec-title">预告（未解锁时粉丝看到的）</div>
+      <label>预告文字</label>
+      <textarea class="d-teaser-text" placeholder="给一点悬念…"></textarea>
+      <label>预告图片（前端会自动打码模糊）</label>
+      <div id="dm-teaser-up"></div>
+
+      <div class="sec-title">门后的内容（解锁后才下发）</div>
+      <label>文字内容</label>
+      <textarea class="d-body" placeholder="门后的正文…"></textarea>
+      <label>影片（上传 或 贴 YouTube / Bilibili 网址）</label>
+      <div id="dm-video-up"></div>
+      <label>图片（可放多张）</label>
+      <div id="dm-images-up"></div>
+      <label>链接</label>
+      <input class="d-link" placeholder="https://..."/>
+      <label>链接显示文字</label>
+      <input class="d-linktext" placeholder="点击查看"/>
+
+      <div class="row" style="margin-top:16px;">
+        <button class="btn" id="dm-save">保存</button>
+        <button class="btn ghost" data-close-modal>取消</button>
+        <button class="btn danger" id="dm-del" style="margin-left:auto;">删除这扇门</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ 作者编辑弹窗 ============ -->
   <div class="modal-bg" id="author-modal">
     <div class="modal" style="max-width:460px;">
@@ -293,8 +390,11 @@
 
   let AUTHORS = [];     // 全部作者
   let LETTERS = [];     // 全部信件（按 slot 排序）
+  let DOORS   = [];     // 万圣节的门（按开启时间排序）
+  let DOORS_READY = true;   // doors 资料表建好了没（SCHEMA.md 第 10 节）
   let editingLetter = null;
   let editingAuthor = null;
+  let editingDoor   = null;
 
   function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2400);}
   function esc(s){return (s||"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -329,8 +429,21 @@
     ]);
     AUTHORS = authors || [];
     LETTERS = (letters || []).slice().sort((a,b)=>(a.slot||0)-(b.slot||0));
+    await reloadDoors();
     renderLetters();
     renderAuthors();
+  }
+  // 门单独抓、失败不连坐：doors 表还没建时，824 后台照常能用
+  async function reloadDoors(){
+    try{
+      DOORS = (await rpc("admin_list_doors",{p_key:KEY})) || [];
+      DOORS_READY = true;
+    }catch(e){
+      console.warn("admin_list_doors", e);
+      DOORS = [];
+      DOORS_READY = false;
+    }
+    renderDoors();
   }
 
   $("#loginBtn").onclick=async ()=>{
@@ -342,17 +455,41 @@
   $("#logoutBtn").onclick=()=>{ localStorage.removeItem("yl_admin_key"); location.reload(); };
   $("#previewBtn").onclick=()=>{ window.open("./index.html?preview="+encodeURIComponent(KEY),"_blank"); };
 
-  $$(".tab").forEach(t=> t.onclick=()=>{
-    $$(".tab").forEach(x=>x.classList.remove("on"));
-    t.classList.add("on");
-    $("#tab-letters").classList.toggle("hidden", t.dataset.tab!=="letters");
-    $("#tab-authors").classList.toggle("hidden", t.dataset.tab!=="authors");
+  /* ================= 主题切换：824 / 万圣节 =================
+     第一个分页跟着主题变（824 = 信件、万圣节 = 门），作者分页两边共用 */
+  const THEME_KEY = "yl_admin_theme";
+  let THEME = localStorage.getItem(THEME_KEY) === "halloween" ? "halloween" : "824";
+  let currentTab = "letters";
+
+  function showTab(tab){
+    currentTab = tab;
+    $$(".tab").forEach(x=>x.classList.toggle("on", x.dataset.tab===tab));
+    const main = tab === "letters";
+    $("#tab-letters").classList.toggle("hidden", !(main && THEME==="824"));
+    $("#tab-doors").classList.toggle("hidden",   !(main && THEME==="halloween"));
+    $("#tab-authors").classList.toggle("hidden", tab!=="authors");
+  }
+  function applyTheme(){
+    const hw = THEME === "halloween";
+    $$(".theme-btn").forEach(b=>b.classList.toggle("on", b.dataset.theme===THEME));
+    $("#panel-title").textContent = hw ? "万圣之夜 · 管理后台" : "树信归期 · 管理后台";
+    $("#tab-main").textContent    = hw ? "🚪 门" : "📩 信件";
+    showTab(currentTab);
+  }
+  $$(".theme-btn").forEach(b=> b.onclick=()=>{
+    THEME = b.dataset.theme;
+    localStorage.setItem(THEME_KEY, THEME);
+    applyTheme();
   });
+  $$(".tab").forEach(t=> t.onclick=()=> showTab(t.dataset.tab));
+  applyTheme();
 
   /* ================= 作者归属：一位作者可以有多个作品 ================= */
-  // 作者 id → 他名下的所有信件
+  // 作者 id → 他名下的所有作品（824 的信 + 万圣节的门，门的标题前面加 🎃）
   function authorWorks(authorId){
-    return LETTERS.filter(L => String(L.author_id) === String(authorId));
+    const mine = x => String(x.author_id) === String(authorId);
+    return LETTERS.filter(mine)
+      .concat(DOORS.filter(mine).map(D => ({ ...D, title: "🎃 " + (D.title || "未命名") })));
   }
   // 作者下拉不再过滤：同一位作者可以绑多封信
   function availableAuthors(){ return AUTHORS; }
@@ -524,10 +661,10 @@
         p_key:KEY, p_id:L.id,
         p_title:$(".f-title",m).value,
         p_body:$(".f-body",m).value,
-        p_image:(readImages()[0] || ""),
-        p_images:JSON.stringify(readImages()),
-        p_video:(readVideos()[0] || ""),        // 旧栏位：留第一支，前台旧版仍能播
-        p_videos:JSON.stringify(readVideos()),
+        p_image:(readImages(m)[0] || ""),
+        p_images:JSON.stringify(readImages(m)),
+        p_video:(readVideos(m)[0] || ""),        // 旧栏位：留第一支，前台旧版仍能播
+        p_videos:JSON.stringify(readVideos(m)),
         p_link:$(".f-link",m).value,
         p_link_text:$(".f-linktext",m).value,
         p_teaser_text:$(".f-teaser-text",m).value,
@@ -560,6 +697,149 @@
     try{ await rpc("admin_init_slots",{p_key:KEY}); await reloadAll(); toast("已按时间表初始化 52 封"); }
     catch(e){ toast("初始化失败：请先在 Supabase 建好 admin_init_slots"); }
   };
+
+  /* ================= 万圣节：门 =================
+     开启时间存 timestamptz；后台一律按中国时间（+08:00）填写与显示 */
+  const CN_MS = 8 * 3600e3;
+  // ISO → "2026-10-31T20:00"（中国时间，给 datetime-local 用）
+  function isoToCnInput(iso){
+    if(!iso) return "";
+    return new Date(Date.parse(iso) + CN_MS).toISOString().slice(0,16);
+  }
+  function cnInputToIso(v){ return v ? `${v}:00+08:00` : null; }
+  function doorTimeLabel(iso){
+    const v = isoToCnInput(iso);
+    if(!v) return "";
+    return `${+v.slice(5,7)}月${+v.slice(8,10)}日 ${v.slice(11,16)}`;
+  }
+
+  $("#q-doors").oninput = renderDoors;
+
+  function renderDoors(){
+    const body = $("#doors-body");
+    const warn = $("#doors-warn");
+    if(!DOORS_READY){
+      warn.innerHTML = `<span class="badge warn">⚠️ 资料库还没有门的资料表</span>
+        <span class="muted"> 请先照 SCHEMA.md 第 10 节在 Supabase 执行 SQL</span>`;
+      body.innerHTML = `<tr class="empty-row"><td colspan="6">资料表建好后，这里会列出所有门。</td></tr>`;
+      return;
+    }
+    const noTime = DOORS.filter(D=>!D.unlock_at).length;
+    warn.innerHTML = noTime
+      ? `<span class="badge warn">⚠️ 还有 ${noTime} 扇门没设开启时间</span><span class="muted"> 没设时间的门会一直锁着</span>`
+      : "";
+
+    const q = ($("#q-doors").value || "").trim().toLowerCase();
+    const rows = DOORS.map((D,i)=>({D,i})).filter(({D})=>{
+      if(!q) return true;
+      const a = AUTHORS.find(x=>String(x.id)===String(D.author_id));
+      return (D.title||"").toLowerCase().includes(q)
+          || (a ? (a.name||"").toLowerCase().includes(q) : false);
+    });
+    if(!rows.length){
+      body.innerHTML = `<tr class="empty-row"><td colspan="6">${
+        DOORS.length ? "没有符合搜索的门" : "还没有门，点上面「新增一扇门」开始。"
+      }</td></tr>`;
+      return;
+    }
+
+    const nowMs = Date.now();
+    body.innerHTML = rows.map(({D,i})=>{
+      const a = AUTHORS.find(x=>String(x.id)===String(D.author_id));
+      const passed = D.unlock_at && Date.parse(D.unlock_at) <= nowMs;
+      return `<tr data-id="${D.id}" class="${D.is_live?'live-row':''}">
+        <td class="muted">${i+1}</td>
+        <td class="c-time">${D.unlock_at ? doorTimeLabel(D.unlock_at) : '<span class="no-author">未设时间</span>'}
+          ${D.unlock_at ? `<div class="muted" style="font-weight:400">${passed ? "已到时间" : "未到时间"}</div>` : ""}
+        </td>
+        <td class="c-title">${esc(D.title)||'<span class="muted">（未命名）</span>'}
+          ${D.door_image ? `<div class="sub">🚪 自订门图</div>` : ""}
+        </td>
+        <td class="c-author">${a ? esc(a.name) : '<span class="no-author">未绑定</span>'}</td>
+        <td><span class="badge ${D.is_live?'on':'off'}">${D.is_live?'已上线':'未上线'}</span></td>
+        <td class="c-act"><button class="btn ghost small edit-btn">编辑</button></td>
+      </tr>`;
+    }).join("");
+
+    $$("#doors-body tr[data-id]").forEach(tr=>{
+      const id = +tr.dataset.id;
+      tr.querySelector(".edit-btn").onclick = (e)=>{ e.stopPropagation(); openDoorModal(id); };
+      tr.onclick = ()=> openDoorModal(id);
+    });
+  }
+
+  function openDoorModal(id){
+    const D = DOORS.find(x=>x.id===id);
+    if(!D) return;
+    editingDoor = D;
+    const m = $("#door-modal");
+    $("#dm-title").textContent = D.unlock_at ? `编辑门 · ${doorTimeLabel(D.unlock_at)}` : "编辑门";
+
+    $(".d-author", m).innerHTML = `<option value="">— 未指定作者 —</option>` +
+      AUTHORS.map(a=>`<option value="${a.id}" ${String(D.author_id)===String(a.id)?"selected":""}>${esc(a.name)}</option>`).join("") +
+      (AUTHORS.length ? "" : `<option disabled>（还没有作者，请先到作者页新增）</option>`);
+
+    $(".d-title", m).value       = D.title || "";
+    $(".d-unlock", m).value      = isoToCnInput(D.unlock_at);
+    $(".d-live", m).checked      = !!D.is_live;
+    $(".d-teaser-text", m).value = D.teaser_text || "";
+    $(".d-body", m).value        = D.body || "";
+    $(".d-link", m).value        = D.link || "";
+    $(".d-linktext", m).value    = D.link_text || "";
+
+    $("#dm-door-up").innerHTML   = uploadField("door-image", D.door_image);
+    $("#dm-teaser-up").innerHTML = uploadField("teaser-image", D.teaser_image);
+    $("#dm-video-up").innerHTML  = multiMediaField(letterVideos(D), "video");
+    $("#dm-images-up").innerHTML = multiMediaField(letterImages(D), "image");
+    bindUploads(m);
+    bindMultiImage(m);
+    bindMultiVideo(m);
+
+    m.classList.add("show");
+  }
+
+  $("#dm-save").onclick = async ()=>{
+    const D = editingDoor; if(!D) return;
+    const m = $("#door-modal");
+    const authorVal = $(".d-author", m).value;
+    try{
+      await rpc("admin_update_door",{
+        p_key:KEY, p_id:D.id,
+        p_title:$(".d-title",m).value,
+        p_unlock_at:cnInputToIso($(".d-unlock",m).value),
+        p_door_image:$(".f-door-image",m).value,
+        p_teaser_text:$(".d-teaser-text",m).value,
+        p_teaser_image:$(".f-teaser-image",m).value,
+        p_body:$(".d-body",m).value,
+        p_images:JSON.stringify(readImages(m)),
+        p_videos:JSON.stringify(readVideos(m)),
+        p_link:$(".d-link",m).value,
+        p_link_text:$(".d-linktext",m).value,
+        p_author_id: authorVal ? parseInt(authorVal) : null,
+        p_is_live:$(".d-live",m).checked
+      });
+      closeModals();
+      await reloadDoors();
+      renderAuthors();
+      toast("已保存 ✅");
+    }catch(e){ console.warn(e); toast("保存失败"); }
+  };
+
+  $("#dm-del").onclick = async ()=>{
+    const D = editingDoor; if(!D) return;
+    if(!confirm(`确定删除「${D.title||"未命名"}」这扇门？`)) return;
+    try{ await rpc("admin_delete_door",{p_key:KEY,p_id:D.id}); closeModals(); await reloadDoors(); renderAuthors(); toast("已删除"); }
+    catch(e){ toast("删除失败"); }
+  };
+
+  $("#addDoorBtn").onclick = async ()=>{
+    if(!DOORS_READY){ toast("请先照 SCHEMA.md 第 10 节建好 doors 资料表"); return; }
+    try{ await rpc("admin_add_door",{p_key:KEY}); await reloadDoors(); toast("已新增一扇门，点它编辑"); }
+    catch(e){ toast("新增失败"); }
+  };
+  $("#reloadDoorBtn").onclick = async ()=>{ try{ await reloadAll(); toast("已刷新"); }catch(e){ toast("刷新失败"); } };
+  $("#previewDoorBtn").onclick = ()=>{ window.open("./halloween/?preview="+encodeURIComponent(KEY),"_blank"); };
+  $("#logoutDoorBtn").onclick = ()=> $("#logoutBtn").click();
 
   /* ================= 作者列表 ================= */
   $("#q-authors").oninput = renderAuthors;
@@ -641,7 +921,7 @@
   /* ================= 弹窗开关 ================= */
   function closeModals(){
     $$(".modal-bg").forEach(m=>m.classList.remove("show"));
-    editingLetter = null; editingAuthor = null;
+    editingLetter = null; editingAuthor = null; editingDoor = null;
   }
   $$("[data-close-modal]").forEach(b=> b.onclick = closeModals);
   $$(".modal-bg").forEach(m=> m.onclick = (e)=>{ if(e.target===m) closeModals(); });
@@ -789,12 +1069,12 @@
   }
   function imgRowHTML(url){ return mediaRowHTML(url, "image"); }
 
-  // 从画面读回目前的阵列
-  function readMedia(kind){
-    return $$(`#${MEDIA[kind].p}-list .img-row`).map(r=>r.dataset.url);
+  // 从画面读回目前的阵列（root = 哪个弹窗；信件和门的弹窗各有一份清单）
+  function readMedia(kind, root){
+    return $$(`#${MEDIA[kind].p}-list .img-row`, root).map(r=>r.dataset.url);
   }
-  function readImages(){ return readMedia("image"); }
-  function readVideos(){ return readMedia("video"); }
+  function readImages(root){ return readMedia("image", root); }
+  function readVideos(root){ return readMedia("video", root); }
 
   function bindMultiImage(root){ bindMultiMedia(root, "image"); }
   function bindMultiVideo(root){ bindMultiMedia(root, "video"); }
