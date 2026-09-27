@@ -6,7 +6,6 @@
 <title>万圣之夜</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎃</text></svg>" />
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
-<meta name="theme-color" content="#140a24" />
 <style>
   :root{
     --night:#140a24; --night-2:#241040; --night-3:#3a1a5c;
@@ -20,17 +19,39 @@
   html,body{margin:0;height:100%;
     font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ghost);}
   /* iOS Safari 工具栏后面只画根元素底色：根元素也铺夜空色，不露白边 */
-  html{background:var(--night);min-height:100vh;min-height:100lvh;}
-  body{overflow:hidden;position:relative;background:transparent;}
+  /* iOS Safari（尤其新版浮动玻璃工具栏）后面画的是根元素 —— 根元素也铺同一片夜空渐层，
+     撑到完整屏幕高度（lvh），工具栏后面才不会露出一条颜色不一样的带子 */
+  /* 底色用渐层最「顶端」的深夜色：Safari 顶部状态栏那一条抓的是这个单一底色，
+     和夜空最上面同色才接得起来（底部已由 #backdrop 盖满） */
+  html{background:linear-gradient(180deg, var(--night) 0%, var(--night-2) 55%, var(--night-3) 100%) var(--night);
+    min-height:100vh;min-height:100lvh;
+  /* 外层整页锁住不能滚：#backdrop 撑到完整屏幕高（lvh）会比工具栏展开时的可视区域高，
+     iOS Safari 有时无视 body 的 overflow，会整页被拖动 / 回弹。页面只在自己的区域里滑 */
+  html{overflow:hidden;}
+  /* 不设 position：背景层 #backdrop 要以整个屏幕为准定位，不能被 body 的 overflow 裁掉 */
+  body{overflow:hidden;background:transparent;}
+
+  /* ---------- 背景层容器 ----------
+     新版 iOS Safari 会把「贴着屏幕边缘的 position:fixed 元素」的颜色，
+     自己延伸成状态栏 / 工具栏后面的一整片纯色。
+     所以夜空、月亮、星星、蝙蝠、雾都放在这个「一般的」容器里（absolute，不是 fixed），
+     高度撑满完整屏幕（lvh，含工具栏后面），Safari 就会透出真正的夜空而不是纯色。
+     页面本身不会滚动，absolute 和 fixed 看起来一样。 */
+  #backdrop{position:absolute;top:0;left:0;right:0;height:100vh;height:100lvh;overflow:hidden;
+    z-index:0;pointer-events:none;}
+  /* 夜空底下再接一段同色（fixed，贴在可视区域正下方，不增加页面高度）：
+     Safari 实际画到的区域比可视区域再低一点，工具栏下面那一小条才不会露出深色底 */
+  #backdrop-tail{position:fixed;left:0;right:0;top:100%;height:40vh;z-index:0;pointer-events:none;
+    background:linear-gradient(180deg,#5c3868 0%,#3a1a5c 100%);}
 
   /* ---------- 背景：夜空 + 月亮 + 星星 + 雾（设计稿到了就换 BG_IMAGE）---------- */
-  #sky{position:fixed;top:0;right:0;bottom:0;left:0;z-index:0;pointer-events:none;
+  #sky{position:absolute;top:0;right:0;bottom:0;left:0;z-index:0;pointer-events:none;
     background:
       radial-gradient(ellipse at 50% 110%, rgba(255,122,26,.28) 0%, rgba(255,122,26,0) 55%),
       linear-gradient(180deg, var(--night) 0%, var(--night-2) 55%, var(--night-3) 100%);
     background-size:cover;background-position:center;}
   #sky.has-img{background-size:cover;background-position:center bottom;}
-  #moon{position:fixed;top:9vh;top:calc(9vh + env(safe-area-inset-top));right:9vw;z-index:0;pointer-events:none;
+  #moon{position:absolute;top:9vh;top:calc(9vh + env(safe-area-inset-top));right:9vw;z-index:0;pointer-events:none;
     width:24vw;height:24vw;max-width:130px;max-height:130px;border-radius:50%;
     background:radial-gradient(circle at 38% 36%, #fffbe6 0%, #ffe9a8 45%, #f3c96a 100%);
     box-shadow:0 0 40px 8px rgba(255,220,130,.35), 0 0 120px 30px rgba(255,200,100,.14);}
@@ -39,18 +60,18 @@
                radial-gradient(circle at 34% 70%, rgba(200,150,60,.18) 0 6%, transparent 7%),
                radial-gradient(circle at 58% 28%, rgba(200,150,60,.16) 0 5%, transparent 6%);}
   #sky.has-img ~ #moon{display:none;}
-  #stars{position:fixed;top:0;right:0;bottom:0;left:0;z-index:0;pointer-events:none;}
+  #stars{position:absolute;top:0;right:0;bottom:0;left:0;z-index:0;pointer-events:none;}
   .star{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;
     animation:twinkle ease-in-out infinite alternate;}
   @keyframes twinkle{from{opacity:.15}to{opacity:.9}}
-  .fog{position:fixed;left:-20%;right:-20%;z-index:2;pointer-events:none;height:34vh;bottom:-6vh;
+  .fog{position:absolute;left:-20%;right:-20%;z-index:2;pointer-events:none;height:34vh;bottom:-6vh;
     background:radial-gradient(ellipse at 30% 60%, rgba(190,170,230,.22) 0%, rgba(190,170,230,0) 60%),
                radial-gradient(ellipse at 75% 70%, rgba(190,170,230,.18) 0%, rgba(190,170,230,0) 55%);
     filter:blur(8px);animation:fogDrift 22s ease-in-out infinite alternate;}
   .fog.f2{bottom:-12vh;animation-duration:30s;animation-direction:alternate-reverse;opacity:.8;}
   @keyframes fogDrift{from{transform:translateX(-6%)}to{transform:translateX(6%)}}
   /* 飞过夜空的蝙蝠 */
-  #bats{position:fixed;top:0;right:0;bottom:0;left:0;z-index:1;pointer-events:none;overflow:hidden;}
+  #bats{position:absolute;top:0;right:0;bottom:0;left:0;z-index:1;pointer-events:none;overflow:hidden;}
   .bat{position:absolute;left:-60px;width:34px;color:#0b0514;opacity:.85;
     animation:batFly linear forwards;}
   .bat svg{display:block;width:100%;animation:flap .22s ease-in-out infinite alternate;transform-origin:50% 40%;}
@@ -190,7 +211,9 @@
   @keyframes fxSpark{from{transform:translate(0,0) scale(1);opacity:1}to{transform:translate(var(--dx),var(--dy)) scale(.3);opacity:0}}
   #flash{position:fixed;top:0;right:0;bottom:0;left:0;z-index:14;pointer-events:none;opacity:0;
     background:radial-gradient(ellipse at 50% 55%, rgba(255,210,120,.75) 0%, rgba(255,160,60,.25) 40%, rgba(255,160,60,0) 70%);}
-  #flash.on{animation:flash .9s ease-out;}
+  /* 平时 display:none：透明的全屏 fixed 元素也可能被 Safari 拿去补状态栏颜色 */
+  #flash{display:none;}
+  #flash.on{display:block;animation:flash .9s ease-out;}
   @keyframes flash{0%{opacity:0}35%{opacity:1}100%{opacity:0}}
 
   /* ---------- 门后的内容 ---------- */
@@ -258,12 +281,15 @@
 </style>
 </head>
 <body>
-  <div id="sky"></div>
-  <div id="moon"></div>
-  <div id="stars"></div>
-  <div id="bats"></div>
-  <div class="fog"></div>
-  <div class="fog f2"></div>
+  <div id="backdrop-tail"></div>
+  <div id="backdrop">
+    <div id="sky"></div>
+    <div id="moon"></div>
+    <div id="stars"></div>
+    <div id="bats"></div>
+    <div class="fog"></div>
+    <div class="fog f2"></div>
+  </div>
 
   <a class="corner-btn" id="btn-home" href="/home" aria-label="返回主题选择">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -311,6 +337,6 @@
   <script src="/config.js?v=13"></script>
   <!-- 演示数据：只在 ?demo=1 时真正被用到 -->
   <script src="/halloween/demo-doors.js?v=1"></script>
-  <script src="/halloween/halloween.js?v=2"></script>
+  <script src="/halloween/halloween.js?v=4"></script>
 </body>
 </html>

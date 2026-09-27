@@ -388,15 +388,21 @@ function requestRefresh(){
    用 JS 算成 px 写进 --door-w，不靠 CSS min()（旧内核不支援）
 ========================================================= */
 function sizeDoors(){
-  const w = innerWidth;
-  // 门高 = 1.5 倍门宽，下面还要放编号 / 标题 / 倒计时（约 92px）——
-  // 按长廊实际高度倒推门宽，微信顶栏、iPhone SE 这种矮屏也不会挤在一起
-  const railH = $("#rail").clientHeight || innerHeight*0.7;
-  const byH = (railH - 92) / 1.5;
-  const door = Math.max(120, Math.min(w*0.66, 300, byH));
+  const w = innerWidth, rail = $("#rail");
+  // 长廊的上缘接在标题区「实际」的下缘：刘海高的手机（iPhone Pro）标题区比较高，
+  // 写死的数字会让门顶被标题 / 标签压住
+  const headerBottom = $("header").getBoundingClientRect().bottom;
+  rail.style.top = Math.round(headerBottom + 10) + "px";
+  // 门高 = 1.5 倍门宽，下面还要放编号 / 标题 / 倒计时（约 96px）；
+  // 门不要塞满：最宽 58% 屏宽、最大 280px，上下左右留得出夜空
+  const railH = rail.clientHeight || innerHeight*0.6;
+  const byH = (railH - 96) / 1.5 * 0.92;
+  const door = Math.max(120, Math.min(w*0.58, 280, byH));
   document.documentElement.style.setProperty("--door-w", Math.round(door) + "px");
 }
 sizeDoors();
+// 字体晚一点才载好时标题区会变高，再量一次
+addEventListener("load", ()=>{ sizeDoors(); jumpTo(curIdx, false); });
 
 /* =========================================================
    滑动 / 翻页
@@ -499,6 +505,7 @@ function openDoor(D, i, door){
   playCreak();
   door.classList.add("opening");
   const f = $("#flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on");
+  setTimeout(()=> f.classList.remove("on"), 950);
   burstFX($(".door-inside", door));
   setTimeout(()=>{
     opened.add(D.id);
