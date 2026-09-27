@@ -185,12 +185,11 @@
   .node.in::before{transform:none;}
 
   /* ================= 去 / 回 =================
-     去：从手指按的位置扩散出主题色的圆，盖满再进去
-     回：先盖着上次那个主题色，再淡开，画面停在原本滑到的地方 */
-  #wipe{position:fixed;top:0;left:0;width:100%;height:100%;z-index:50;pointer-events:none;}
-  #wipe i{position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;
-    transform:scale(0);transition:transform .45s cubic-bezier(.6,0,.4,1),opacity .45s ease;}
-  #wipe.go i{transform:scale(var(--s,120));}
+     去：像按实体按钮 —— 卡片轻轻压下去，马上进去，不盖任何颜色
+     回：直接停回原本的位置；等位置还原好才显示（不闪首屏），内容淡淡出现 */
+  .pressing{transform:scale(.975)!important;transition:transform .12s ease!important;}
+  html.returning body{opacity:0;}
+  html.fadein body{transition:opacity .28s ease;}
   /* 回来时：不重播任何过渡，直接停在该有的样子 */
   html.restoring *,html.restoring *::before,html.restoring *::after{transition:none!important;}
 
@@ -202,7 +201,18 @@
 <body>
   <div id="petals"></div>
   <div id="progress"></div>
-  <div id="wipe"><i></i></div>
+  <script>
+    // 从主题页「上一页」回来：先不显示，等位置还原好再出现，不让首屏闪一下再跳走
+    (function(){
+      try{
+        var raw = sessionStorage.getItem("home.nav"); if(!raw) return;
+        var nav = performance.getEntriesByType ? performance.getEntriesByType("navigation")[0] : null;
+        var back = nav ? nav.type === "back_forward" : (performance.navigation && performance.navigation.type === 2);
+        if(!back) return;
+        document.documentElement.className += " returning";
+      }catch(e){}
+    })();
+  </script>
 
   <!-- 首屏 -->
   <header class="hero">
@@ -310,9 +320,9 @@
 
   var THEMES = [
     { key:"halloween", name:"万圣之夜", date:"10.31", url:"/halloween/", rpc:"public_get_doors",
-      desc:"一扇扇门，到时间就能推开", unit:"扇门", color:"#140a24" },
+      desc:"一扇扇门，到时间就能推开", unit:"扇门" },
     { key:"824", name:"树信归期 · 824", date:"08.24", url:"/?from=home", rpc:"public_get_letters",
-      desc:"樱花树下的 52 封信", unit:"封信", color:"#f6d5e6", cover:(CFG.HOME_COVERS||{})["824"] || "/assets/sakura-bg.jpg" }
+      desc:"樱花树下的 52 封信", unit:"封信", cover:(CFG.HOME_COVERS||{})["824"] || "/assets/sakura-bg.jpg" }
   ];
 
   function rpc(fn){
@@ -355,7 +365,7 @@
     var art = t.key === "halloween"
       ? '<div class="art">' + DOOR_HTML + '</div>'
       : '<div class="art" style="background-image:url(\'' + esc(t.cover) + '\')"></div>';
-    return '<a class="portal rv t-' + t.key + (big ? ' big' : '') + '" href="' + t.url + '" data-color="' + t.color + '">' + chip + art +
+    return '<a class="portal rv t-' + t.key + (big ? ' big' : '') + '" href="' + t.url + '" data-target="portal-' + t.key + '">' + chip + art +
       '<div class="body"><div class="row"><h3>' + esc(t.name) + '</h3><span class="go">进入</span></div>' +
       '<p>' + esc(t.desc) + '</p><div class="stat">' + statLine(t) + '</div></div></a>';
   }
@@ -368,7 +378,7 @@
     // 时间线：相遇 → 各主题（按月份日期排）→ 下一站
     var nodes = '<div class="node origin"><div class="d">2016.08.24</div><div class="t">相遇</div><div class="s">故事从这一天开始</div></div>';
     THEMES.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; }).forEach(function(t){
-      nodes += '<a class="node" href="' + t.url + '" data-color="' + t.color + '"><div class="d">2026.' + t.date + '</div><div class="t">' + esc(t.name) +
+      nodes += '<a class="node" href="' + t.url + '" data-target="node-' + t.key + '"><div class="d">2026.' + t.date + '</div><div class="t">' + esc(t.name) +
         '</div><div class="s">' + esc(t.desc) + ' · ' + t.st.label + '</div></a>';
     });
     nodes += '<div class="node next"><div class="d">NEXT</div><div class="t">下一站……</div><div class="s">敬请期待</div></div>';
@@ -399,7 +409,7 @@
 
   THEMES.forEach(function(t){ t.st = { k:"prep", label:"布置中" }; });
   var rendered = false;
-  var slow = setTimeout(function(){ if(!rendered){ rendered = true; render(); restoreBack(); } }, 5000);   // 网络太慢：先画出来
+  var slow = setTimeout(function(){ if(!rendered){ rendered = true; render(); restoreBack(); } }, BACK ? 2500 : 5000);   // 网络太慢：先画出来
   Promise.all(THEMES.map(function(t){ return rpc(t.rpc); })).then(function(res){
     clearTimeout(slow);
     var names = [], seen = {};
@@ -478,65 +488,57 @@
   /* =========================================================
      去 / 回
   ========================================================= */
-  var wipe = $("#wipe"), dot = wipe.firstChild;
-  function coverRadius(x, y){
-    var w = window.innerWidth, h = window.innerHeight;
-    var r = Math.sqrt(Math.pow(Math.max(x, w-x), 2) + Math.pow(Math.max(y, h-y), 2));
-    return r / 10 + 1;                       // 圆点原本直径 20px
-  }
 
-  // 去：点入口 / 时间线节点 → 记位置 → 主题色的圆扩散盖满 → 进去
+  // 去：点入口 / 时间线节点 → 记下滑到哪里 → 卡片轻轻压下去 → 进去
   document.addEventListener("click", function(e){
-    var a = e.target.closest && e.target.closest("a[data-color]");
+    var a = e.target.closest && e.target.closest("a[data-target]");
     if(!a) return;
     if(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button) return;   // 新分页打开之类的，照浏览器原本行为
     e.preventDefault();
-    var color = a.getAttribute("data-color");
-    try{ sessionStorage.setItem(NAV_KEY, JSON.stringify({ y: window.pageYOffset || 0, color: color })); }catch(_){}
-    var x = e.clientX || window.innerWidth/2, y = e.clientY || window.innerHeight/2;
-    dot.style.left = x + "px"; dot.style.top = y + "px";
-    dot.style.background = color;
-    dot.style.opacity = "1";
-    dot.style.setProperty("--s", coverRadius(x, y));
-    wipe.classList.add("go");
-    setTimeout(function(){ location.href = a.href; }, REDUCED ? 0 : 430);
+    try{ sessionStorage.setItem(NAV_KEY, JSON.stringify({ y: window.pageYOffset || 0 })); }catch(_){}
+    a.classList.add("pressing");
+    setTimeout(function(){ location.href = a.href; }, REDUCED ? 0 : 130);
   });
 
-  // 回：先盖着刚才那个主题色 → 画面停回原位（已经看过的区块直接显示）→ 淡开
+  // 回：（先隐藏着）滑回原位、看过的区块直接显示 → 淡淡出现
+  var root = document.documentElement;
+  function reveal(){
+    if(root.className.indexOf("returning") < 0) return;
+    root.classList.add("fadein");
+    root.classList.remove("returning");
+    setTimeout(function(){ root.classList.remove("fadein"); }, 320);
+  }
+  if(!BACK) root.classList.remove("returning");        // 保险：判断不是返回就别藏着
+  setTimeout(reveal, 3000);                             // 保险：资料再慢，3 秒也要显示
+
   function restoreBack(){
     if(!BACK) return;
-    var y = +BACK.y || 0, color = BACK.color;
+    var y = +BACK.y || 0;
     BACK = null;
-    var root = document.documentElement;
-    root.classList.add("restoring");
+    root.classList.add("restoring");                    // 这一刻不跑任何过渡
     var bottom = y + window.innerHeight;
     var els = document.querySelectorAll(".rv, .sec-h");
     for(var i = 0; i < els.length; i++){
       if(els[i].getBoundingClientRect().top + (window.pageYOffset||0) < bottom){
-        els[i].classList.add("in");
+        els[i].classList.add("in");                     // 看过的区块直接显示，不重播
         if(io) io.unobserve(els[i]);
       }
     }
     window.scrollTo(0, y);
     onScroll();
-    if(color){
-      dot.style.background = color;
-      dot.style.left = "50%"; dot.style.top = "50%";
-      dot.style.setProperty("--s", coverRadius(window.innerWidth/2, window.innerHeight/2));
-      wipe.classList.add("go");
-    }
     requestAnimationFrame(function(){ requestAnimationFrame(function(){
       root.classList.remove("restoring");
-      dot.style.opacity = "0";                // 淡开
-      setTimeout(function(){ wipe.classList.remove("go"); dot.style.opacity = "1"; }, 460);
+      reveal();
     }); });
   }
-  // 从 bfcache 直接还原整页（iOS Safari 常见）：收掉还盖着的圆
+
+  // 从 bfcache 直接还原整页（iOS Safari 常见）：页面本来就停在原位，只要把压下去的卡片放回来
   window.addEventListener("pageshow", function(e){
     if(!e.persisted) return;
     try{ sessionStorage.removeItem(NAV_KEY); }catch(_){}
-    dot.style.opacity = "0";
-    setTimeout(function(){ wipe.classList.remove("go"); dot.style.opacity = "1"; }, 460);
+    var pressed = document.querySelectorAll(".pressing");
+    for(var i = 0; i < pressed.length; i++) pressed[i].classList.remove("pressing");
+    root.classList.remove("returning");
   });
 
   /* ---------- 两色花瓣 + 点一下冒爱心 ---------- */
