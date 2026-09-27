@@ -158,7 +158,7 @@
       <path class="rb-mag rb-flow" d="M-20 690 C 100 760, 200 500, 200 400 S 280 40, 430 120" stroke-width="2"/>
     </svg>
     <div class="tag">洋灵</div>
-    <div class="since">成立的第</div>
+    <div class="since">相遇的第</div>
     <div class="days" id="days">0</div>
     <div class="unit">天</div>
     <div class="dates" id="dates">2016.08.24 — </div>
@@ -195,7 +195,7 @@
   <script>
   /* =========================================================
      洋灵主页 v2（原型）
-     - 天数：从 2016-08-24 成立纪念日（中国时间）数到今天，和 824 页同一算法
+     - 天数：从 2016-08-24 相遇那天（中国时间）数到今天，和 824 页同一算法
      - 每个主题的状态读真实资料：门 / 信开了几封、下一扇什么时候开
      - 创作者名单从已公开的作品里取，不另外维护
      - 只用 fetch 打 Supabase RPC，旧内核（微信 X5 / 百度）也能跑
@@ -285,8 +285,8 @@
     var list = THEMES.slice().sort(function(a,b){ return RANK[a.st.k] - RANK[b.st.k]; });
     $("#portals").innerHTML = list.map(function(t,i){ return portalHTML(t, i === 0); }).join("");
 
-    // 时间线：成立 → 各主题（按月份日期排）→ 下一站
-    var nodes = '<div class="node origin"><div class="d">2016.08.24</div><div class="t">洋灵成立</div><div class="s">故事从这一天开始</div></div>';
+    // 时间线：相遇 → 各主题（按月份日期排）→ 下一站
+    var nodes = '<div class="node origin"><div class="d">2016.08.24</div><div class="t">相遇</div><div class="s">故事从这一天开始</div></div>';
     THEMES.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; }).forEach(function(t){
       nodes += '<a class="node" href="' + t.url + '"><div class="d">2026.' + t.date + '</div><div class="t">' + esc(t.name) +
         '</div><div class="s">' + esc(t.desc) + ' · ' + t.st.label + '</div></a>';
