@@ -25,7 +25,8 @@
   /* ================= 首屏：天色和洋红相遇 ================= */
   .hero{position:relative;min-height:100vh;min-height:100svh;overflow:hidden;
     display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
-    padding:60px 20px 90px;padding-top:calc(60px + env(safe-area-inset-top));
+    /* 上下不留 padding：数字要正好落在首屏正中（两条光带交叉的点），提示和日期另外挂 */
+    padding:0 20px;
     background:
       radial-gradient(ellipse at 0% 0%, rgba(50,181,225,.55) 0%, rgba(50,181,225,0) 58%),
       radial-gradient(ellipse at 100% 100%, rgba(249,0,146,.45) 0%, rgba(249,0,146,0) 58%),
@@ -38,18 +39,29 @@
   .rb-flow{stroke-dasharray:6 18;animation:flow 6s linear infinite;opacity:.55;}
   @keyframes flow{to{stroke-dashoffset:-240}}
 
-  /* 一行：相遇第 3691 天 */
-  .hero .count{position:relative;display:flex;align-items:baseline;justify-content:center;}
-  .hero .pre,.hero .unit{font-size:18px;font-weight:800;letter-spacing:2px;color:var(--ink);}
-  .hero .pre{margin-right:10px;}
-  .hero .unit{margin-left:10px;}
-  /* 天色 → 水蓝 → 金黄 → 粉 → 洋红：直接蓝到洋红中间会混出紫色，客户不要紫色 */
+  /* 一行：相遇第 3692 天
+     两边文字字数不同（3 字 / 1 字），各占一样宽的一半 → 数字永远在正中线上，
+     和下面的日期、背景两条线的交叉点对齐 */
+  .hero-inner{width:100%;max-width:560px;}
+  .hero .count{position:relative;display:flex;align-items:baseline;width:100%;}
+  .hero .pre,.hero .unit{flex:1 1 0;min-width:0;white-space:nowrap;
+    font-size:18px;font-weight:800;letter-spacing:2px;color:var(--ink);}
+  .hero .pre{text-align:right;margin-right:12px;}
+  .hero .unit{text-align:left;margin-left:12px;}
+  .hero .days{flex:none;}
+  @media (max-width:360px){
+    .hero .pre,.hero .unit{font-size:15px;letter-spacing:1px;}
+    .hero .pre{margin-right:8px;} .hero .unit{margin-left:8px;}
+  }
+  /* 左天色、右洋红（两人的应援色），中间用金色过渡：
+     直接蓝到洋红会混出紫色，客户不要紫色 */
   .hero .days{position:relative;font-weight:900;line-height:1;letter-spacing:-2px;
     font-size:80px;font-size:clamp(64px,21vw,124px);font-variant-numeric:tabular-nums;
     color:var(--magenta);
-    background:linear-gradient(120deg,#32b5e1 0%,#3cc8c4 28%,#ffc24a 55%,#ff6fa9 80%,#f90092 100%);
+    background:linear-gradient(90deg,#32b5e1 0%,#32b5e1 26%,#f2b705 50%,#f90092 74%,#f90092 100%);
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
-  .hero .dates{position:relative;margin-top:18px;font-size:12px;color:var(--ink-soft);letter-spacing:1px;
+  /* 日期挂在数字正下方，不参与置中（否则数字会被往上推、离开交叉点） */
+  .hero .dates{position:absolute;left:0;right:0;top:100%;margin-top:18px;font-size:12px;color:var(--ink-soft);letter-spacing:1px;
     font-variant-numeric:tabular-nums;}
   .scroll-hint{position:absolute;left:0;right:0;bottom:22px;bottom:calc(22px + env(safe-area-inset-bottom));
     text-align:center;font-size:12px;color:var(--ink-soft);letter-spacing:2px;}
