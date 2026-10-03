@@ -56,7 +56,7 @@ window.CONFIG = {
   // 页面在子目录里，写 ./ 会找错地方。
   // 图片留空 = 用内建的占位画面（CSS / SVG 画的），等设计稿到了再填。
   HALLOWEEN: {
-    TITLE:    "万圣之夜",
+    TITLE:    "万圣街 1031",
     SUBTITLE: "左右滑动找门 · 时间到了就能推开",
     BG_IMAGE:    "",   // 背景图，例如 "/assets/halloween/bg.webp"
     FRAME_IMAGE: "",   // 门框（所有门共用），例如 "/assets/halloween/frame.webp"

@@ -16,18 +16,18 @@
   }
 
   const DOORS = [
-    { off:-3*DAY,   title:"第一声敲门",       author:"小柚", bio:"写手",  emoji:"👻", bg:"#3a1a5c" },
+    { off:-3*DAY,   title:"第一声敲门",       author:"小柚", bio:"写手",  emoji:"👻", bg:"#1b2c4a" },
     { off:-1*DAY,   title:"南瓜灯下的约定",   author:"阿澈", bio:"画手",  emoji:"🎃", bg:"#e2560b" },
-    { off:-2*HOUR,  title:"黑猫送来的信",     author:"栗子", bio:"剪辑",  emoji:"🐈‍⬛", bg:"#241040", video:true },
-    { off:-10*MIN,  title:"不给糖就捣蛋",     author:"Mio",  bio:"摄影",  emoji:"🍬", bg:"#6a2c8a" },
-    { off:40e3,     title:"午夜十二点的舞会", author:"团团", bio:"手工",  emoji:"🦇", bg:"#140a24" },
-    { off:25*MIN,   title:"月亮上的扫帚",     author:"柠七", bio:"画手",  emoji:"🧹", bg:"#3a1a5c" },
-    { off:3*HOUR,   title:"幽灵合唱团",       author:"以南", bio:"音乐",  emoji:"🎤", bg:"#241040" },
-    { off:1*DAY,    title:"蜘蛛网里的秘密",   author:"鹿鸣", bio:"写手",  emoji:"🕸️", bg:"#2e2238" },
+    { off:-2*HOUR,  title:"黑猫送来的信",     author:"栗子", bio:"剪辑",  emoji:"🐈‍⬛", bg:"#0e1a30", video:true },
+    { off:-10*MIN,  title:"不给糖就捣蛋",     author:"Mio",  bio:"摄影",  emoji:"🍬", bg:"#1f5a5c" },
+    { off:40e3,     title:"午夜十二点的舞会", author:"团团", bio:"手工",  emoji:"🦇", bg:"#060b16" },
+    { off:25*MIN,   title:"月亮上的扫帚",     author:"柠七", bio:"画手",  emoji:"🧹", bg:"#1b2c4a" },
+    { off:3*HOUR,   title:"幽灵合唱团",       author:"以南", bio:"音乐",  emoji:"🎤", bg:"#0e1a30" },
+    { off:1*DAY,    title:"蜘蛛网里的秘密",   author:"鹿鸣", bio:"写手",  emoji:"🕸️", bg:"#2b2620" },
     { off:2*DAY,    title:"魔药课作业",       author:"星野", bio:"画手",  emoji:"🧪", bg:"#2f5a3a" },
     { off:4*DAY,    title:"古堡的钥匙",       author:"茶白", bio:"剪辑",  emoji:"🗝️", bg:"#6e1f2a" },
     { off:6*DAY,    title:"最后一颗糖",       author:"知遥", bio:"摄影",  emoji:"🍭", bg:"#e2560b" },
-    { off:null,     title:"神秘嘉宾",         author:"奶油", bio:"？？？", emoji:"❓", bg:"#140a24" }
+    { off:null,     title:"神秘嘉宾",         author:"奶油", bio:"？？？", emoji:"❓", bg:"#060b16" }
   ];
 
   // 每次调用都按「现在」重新算时间，所以演示时倒计时是真的在走

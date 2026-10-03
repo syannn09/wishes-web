@@ -1,5 +1,5 @@
 /* =========================================================
-   万圣之夜 · 主逻辑
+   万圣街 1031 · 主逻辑
    - 一扇门 = 一个作品，每扇门在后台各自设开启时间（unlock_at）
    - 横向滑动找门，时间没到门上挂锁 + 倒计时
    - 时间到了点门：吱呀开门声 → 门转开 → 蝙蝠飞出 → 弹出内容
@@ -67,7 +67,7 @@ function rpc(fn, args){
 const BAT_SVG = `<svg viewBox="0 0 64 30"><path fill="currentColor" d="M32 9c1.6-3.2 3.4-4.4 5-4.6-.8 1.8-.7 3.4.2 4.6C43 3.6 53 3.2 64 11c-6.2-.2-9.4 2.6-10.4 6.6-2.8-2.8-6.8-3-9.2-.2-2.2-2.8-5.6-3-8.4-.8C35 19.4 33.6 22 32 24c-1.6-2-3-4.6-4-7.4-2.8-2.2-6.2-2-8.4.8-2.4-2.8-6.4-2.6-9.2.2C9.4 13.6 6.2 10.8 0 11c11-7.8 21-7.4 26.8-2 .9-1.2 1-2.8.2-4.6 1.6.2 3.4 1.4 5 4.6z"/></svg>`;
 
 const LOCK_SVG = `<svg viewBox="0 0 40 48">
-  <path d="M11 21v-7a9 9 0 0118 0v7" fill="none" stroke="#b9b1c6" stroke-width="5" stroke-linecap="round"/>
+  <path d="M11 21v-7a9 9 0 0118 0v7" fill="none" stroke="#b8bec8" stroke-width="5" stroke-linecap="round"/>
   <rect x="4" y="20" width="32" height="26" rx="5" fill="#d9a441" stroke="#5e3f0c" stroke-width="2"/>
   <rect x="7" y="23" width="26" height="4" rx="2" fill="#f3cf7a" opacity=".7"/>
   <circle cx="20" cy="32" r="3.6" fill="#3a2508"/><rect x="18.4" y="33" width="3.2" height="8" rx="1.6" fill="#3a2508"/>
@@ -84,43 +84,43 @@ const FRAME_SVG = (()=>{
     joints.push(`M4 ${y} L30 ${y}`, `M170 ${y+ (k%2?8:-8)} L196 ${y+(k%2?8:-8)}`);
   });
   return `<svg viewBox="0 0 200 300" preserveAspectRatio="none">
-    <path fill-rule="evenodd" fill="#8a8196" stroke="#231a2c" stroke-width="3"
+    <path fill-rule="evenodd" fill="#8c8f95" stroke="#1b1e24" stroke-width="3"
       d="M4 300 L4 104 A96 96 0 0 1 196 104 L196 300 Z M30 300 L30 110 A70 70 0 0 1 170 110 L170 300 Z"/>
-    <path d="M12 300 L12 108 A88 88 0 0 1 60 30" fill="none" stroke="#a9a1b5" stroke-width="3" opacity=".5"/>
-    <path d="${joints.join(" ")}" stroke="#4d4358" stroke-width="2" fill="none" opacity=".8"/>
-    <path d="M86 8 L114 8 L110 40 L90 40 Z" fill="#9c93a8" stroke="#231a2c" stroke-width="3"/>
-    <rect x="0" y="288" width="200" height="12" rx="3" fill="#6f6680" stroke="#231a2c" stroke-width="3"/>
+    <path d="M12 300 L12 108 A88 88 0 0 1 60 30" fill="none" stroke="#a9adb4" stroke-width="3" opacity=".5"/>
+    <path d="${joints.join(" ")}" stroke="#474b52" stroke-width="2" fill="none" opacity=".8"/>
+    <path d="M86 8 L114 8 L110 40 L90 40 Z" fill="#9ea1a7" stroke="#1b1e24" stroke-width="3"/>
+    <rect x="0" y="288" width="200" height="12" rx="3" fill="#6e7178" stroke="#1b1e24" stroke-width="3"/>
   </svg>`;
 })();
 
 // 每扇门的配色 + 门上的小图案，按顺序轮流用，看起来「每扇门都不一样」
 const DOOR_LOOKS = [
   { wood:"#6b3f22", dark:"#4a2a15", emblem:"pumpkin" },
-  { wood:"#4b2a6b", dark:"#321a4a", emblem:"ghost" },
+  { wood:"#1f5a5c", dark:"#143e40", emblem:"ghost" },
   { wood:"#2f5a3a", dark:"#1e3d26", emblem:"cat" },
   { wood:"#6e1f2a", dark:"#4a121b", emblem:"skull" },
   { wood:"#243a6b", dark:"#16264a", emblem:"moon" },
-  { wood:"#3a2e36", dark:"#241b21", emblem:"web" }
+  { wood:"#3a3530", dark:"#24201c", emblem:"web" }
 ];
 const EMBLEMS = {
-  pumpkin:`<ellipse cx="70" cy="100" rx="24" ry="19" fill="#ff7a1a" stroke="#1a1020" stroke-width="2.5"/>
+  pumpkin:`<ellipse cx="70" cy="100" rx="24" ry="19" fill="#ff7a1a" stroke="#14110e" stroke-width="2.5"/>
     <path d="M70 81 q2-8 8-9" stroke="#2f5a3a" stroke-width="4" fill="none" stroke-linecap="round"/>
-    <path d="M58 95 l6-5 3 6z M76 96 l6-6 3 6z" fill="#1a1020"/><path d="M58 106 q12 9 24 0 l-4 3-4-3-4 3-4-3-4 3z" fill="#1a1020"/>`,
-  ghost:`<path d="M52 118 V96 a18 18 0 0 1 36 0 V118 l-6-5-6 5-6-5-6 5-6-5z" fill="#f4f0ff" stroke="#1a1020" stroke-width="2.5"/>
-    <ellipse cx="63" cy="97" rx="3" ry="4.5" fill="#1a1020"/><ellipse cx="77" cy="97" rx="3" ry="4.5" fill="#1a1020"/>`,
-  cat:`<path d="M50 112 V86 l8 8 h24 l8-8 V112 a20 16 0 0 1 -40 0z" fill="#15101c" stroke="#000" stroke-width="2"/>
+    <path d="M58 95 l6-5 3 6z M76 96 l6-6 3 6z" fill="#14110e"/><path d="M58 106 q12 9 24 0 l-4 3-4-3-4 3-4-3-4 3z" fill="#14110e"/>`,
+  ghost:`<path d="M52 118 V96 a18 18 0 0 1 36 0 V118 l-6-5-6 5-6-5-6 5-6-5z" fill="#f3f6fb" stroke="#14110e" stroke-width="2.5"/>
+    <ellipse cx="63" cy="97" rx="3" ry="4.5" fill="#14110e"/><ellipse cx="77" cy="97" rx="3" ry="4.5" fill="#14110e"/>`,
+  cat:`<path d="M50 112 V86 l8 8 h24 l8-8 V112 a20 16 0 0 1 -40 0z" fill="#111214" stroke="#000" stroke-width="2"/>
     <ellipse cx="62" cy="104" rx="4" ry="5" fill="#ffc861"/><ellipse cx="78" cy="104" rx="4" ry="5" fill="#ffc861"/>
-    <path d="M62 101 v6 M78 101 v6" stroke="#15101c" stroke-width="1.6"/>`,
-  skull:`<path d="M54 100 a16 16 0 0 1 32 0 v8 h-6 v7 h-20 v-7 h-6z" fill="#f4f0ff" stroke="#1a1020" stroke-width="2.5"/>
-    <circle cx="63" cy="100" r="4.5" fill="#1a1020"/><circle cx="77" cy="100" r="4.5" fill="#1a1020"/>
-    <path d="M65 115 v-5 M70 115 v-5 M75 115 v-5" stroke="#1a1020" stroke-width="1.6"/>`,
-  moon:`<path d="M80 80 a22 22 0 1 0 0 40 a17 17 0 1 1 0 -40z" fill="#ffe9a8" stroke="#1a1020" stroke-width="2"/>
+    <path d="M62 101 v6 M78 101 v6" stroke="#111214" stroke-width="1.6"/>`,
+  skull:`<path d="M54 100 a16 16 0 0 1 32 0 v8 h-6 v7 h-20 v-7 h-6z" fill="#f3f6fb" stroke="#14110e" stroke-width="2.5"/>
+    <circle cx="63" cy="100" r="4.5" fill="#14110e"/><circle cx="77" cy="100" r="4.5" fill="#14110e"/>
+    <path d="M65 115 v-5 M70 115 v-5 M75 115 v-5" stroke="#14110e" stroke-width="1.6"/>`,
+  moon:`<path d="M80 80 a22 22 0 1 0 0 40 a17 17 0 1 1 0 -40z" fill="#ffe9a8" stroke="#14110e" stroke-width="2"/>
     <path d="M86 88 l2 5 5 .5 -4 3 1.5 5 -4.5-3 -4.5 3 1.5-5 -4-3 5-.5z" fill="#ffc861"/>`,
-  web:`<g stroke="#d9d2e6" stroke-width="1.4" fill="none" opacity=".85">
+  web:`<g stroke="#d5dbe3" stroke-width="1.4" fill="none" opacity=".85">
     <path d="M70 76 V124 M46 100 H94 M53 83 L87 117 M87 83 L53 117"/>
     <path d="M70 84 L80 90 L86 100 L80 110 L70 116 L60 110 L54 100 L60 90 Z"/>
     <path d="M70 92 L76 95 L79 100 L76 105 L70 108 L64 105 L61 100 L64 95 Z"/></g>
-    <circle cx="80" cy="112" r="4" fill="#15101c"/><path d="M80 116 v8" stroke="#d9d2e6" stroke-width="1"/>`
+    <circle cx="80" cy="112" r="4" fill="#111214"/><path d="M80 116 v8" stroke="#d5dbe3" stroke-width="1"/>`
 };
 
 // 门板：viewBox 140×260，拱顶半径 70；铰链在左、门把在右（门往左边、往里转开）
@@ -138,7 +138,7 @@ function doorLeafSVG(i){
       <rect x="16" y="150" width="108" height="92" rx="6" fill="none" stroke="${look.dark}" stroke-width="4"/>
       <rect x="0" y="136" width="140" height="7" fill="${look.dark}" opacity=".7"/>
     </g>
-    <path d="${arch}" fill="none" stroke="#1a1020" stroke-width="5"/>
+    <path d="${arch}" fill="none" stroke="#14110e" stroke-width="5"/>
     ${EMBLEMS[look.emblem]}
     <rect x="2" y="78" width="10" height="16" rx="2" fill="#c9a24a" stroke="#5e3f0c" stroke-width="1.2"/>
     <rect x="2" y="206" width="10" height="16" rx="2" fill="#c9a24a" stroke="#5e3f0c" stroke-width="1.2"/>
@@ -151,7 +151,7 @@ function doorLeafSVG(i){
    背景：星星 + 偶尔飞过的蝙蝠
 ========================================================= */
 function setupSky(){
-  const title = H.TITLE || "万圣之夜";
+  const title = H.TITLE || "万圣街 1031";
   $("#title").textContent = title;
   document.title = title;
   $("#subtitle").textContent = H.SUBTITLE || "";
@@ -531,7 +531,7 @@ function burstFX(fromEl){
     fx.appendChild(b);
     setTimeout(()=>b.remove(), 1500);
   }
-  const colors = ["#ff7a1a","#ffc861","#9be15d","#c58bff","#fff4c8"];
+  const colors = ["#ff7a1a","#ffc861","#9be15d","#6fd0ff","#fff4c8"];
   for(let k = 0; k < 18; k++){
     const s = document.createElement("div");
     s.className = "fx-spark";

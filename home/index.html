@@ -7,10 +7,10 @@
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
 <link rel="alternate icon" href="/assets/favicon.ico" />
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
-<meta name="theme-color" content="#1c1430" />
+<meta name="theme-color" content="#0f1626" />
 <style>
   :root{
-    --bg:#1c1430; --bg-2:#2c2046; --card:#ffffff; --ink:#2e2640; --ink-soft:#7a7290;
+    --bg:#0f1626; --bg-2:#1a2438; --card:#ffffff; --ink:#2a2d34; --ink-soft:#7b7f88;
     --magenta:#f90092; --pumpkin:#ff7a1a;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -54,11 +54,11 @@
   .t-824 .cover::after{content:"";position:absolute;top:0;right:0;bottom:0;left:0;
     background:linear-gradient(180deg,rgba(255,255,255,0) 40%,rgba(249,0,146,.18) 100%);}
   /* 万圣节封面：没给图时用 CSS 画的夜空 + 门 */
-  .t-halloween .cover{background-color:#140a24;
+  .t-halloween .cover{background-color:#060b16;
     background-image:
       radial-gradient(circle at 78% 26%, #fff4c8 0 7%, rgba(255,220,130,.35) 7.5%, rgba(255,220,130,0) 16%),
       radial-gradient(ellipse at 50% 120%, rgba(255,122,26,.45) 0%, rgba(255,122,26,0) 60%),
-      linear-gradient(180deg,#140a24 0%,#3a1a5c 100%);}
+      linear-gradient(180deg,#060b16 0%,#1b2c4a 100%);}
   .t-halloween .cover.has-img{background-image:none;}
   .cover-door{position:absolute;left:50%;bottom:0;height:78%;transform:translateX(-50%);}
   .cover.has-img .cover-door{display:none;}
@@ -75,18 +75,18 @@
       <span class="badge">NEW</span>
       <div class="cover" data-cover="halloween">
         <svg class="cover-door" viewBox="0 0 200 300" aria-hidden="true">
-          <path fill-rule="evenodd" fill="#8a8196" stroke="#231a2c" stroke-width="3"
+          <path fill-rule="evenodd" fill="#8c8f95" stroke="#1b1e24" stroke-width="3"
             d="M4 300 L4 104 A96 96 0 0 1 196 104 L196 300 Z M30 300 L30 110 A70 70 0 0 1 170 110 L170 300 Z"/>
           <path d="M30 288 L30 110 A70 70 0 0 1 170 110 L170 288 Z" fill="#ffc861"/>
           <path d="M170 288 L170 110 A70 70 0 0 0 136 50 L136 288 Z" fill="#5a1d0a" opacity=".35"/>
-          <path d="M30 288 L30 110 L-4 80 L-4 300 Z" fill="#6b3f22" stroke="#1a1020" stroke-width="4"/>
-          <rect x="0" y="288" width="200" height="12" rx="3" fill="#6f6680" stroke="#231a2c" stroke-width="3"/>
+          <path d="M30 288 L30 110 L-4 80 L-4 300 Z" fill="#6b3f22" stroke="#14110e" stroke-width="4"/>
+          <rect x="0" y="288" width="200" height="12" rx="3" fill="#6e7178" stroke="#1b1e24" stroke-width="3"/>
           <text x="100" y="230" font-size="60" text-anchor="middle">🎃</text>
         </svg>
       </div>
       <div class="info">
         <div class="txt">
-          <h2>万圣之夜</h2>
+          <h2>万圣街 1031</h2>
           <p>一扇扇门，到时间就能推开</p>
         </div>
         <span class="go">进入</span>
@@ -105,7 +105,7 @@
     </a>
   </main>
 
-  <script src="/config.js?v=13"></script>
+  <script src="/config.js?v=15"></script>
   <script>
     // 封面图：CONFIG.HOME_COVERS 有填就用，没填保留内建占位
     const covers = (window.CONFIG && window.CONFIG.HOME_COVERS) || {};

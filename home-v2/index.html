@@ -12,8 +12,8 @@
   :root{
     /* 应援色：天色 #32B5E1，洋红 #F90092 */
     --sky:#32b5e1; --sky-soft:#bfe8f7; --magenta:#f90092; --magenta-soft:#ffd0ea;
-    --ink:#2f2a45; --ink-soft:#7a7590; --paper:#fffafd; --line:#efe6f0;
-    --night:#140a24; --pumpkin:#ff7a1a;
+    --ink:#2a2d34; --ink-soft:#7b7f88; --paper:#fffafd; --line:#f0eaea;
+    --night:#060b16; --pumpkin:#ff7a1a;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html{background:var(--paper);}
@@ -38,16 +38,17 @@
   .rb-flow{stroke-dasharray:6 18;animation:flow 6s linear infinite;opacity:.55;}
   @keyframes flow{to{stroke-dashoffset:-240}}
 
-  .hero .tag{position:relative;display:inline-block;font-size:12px;font-weight:800;letter-spacing:6px;
-    padding:6px 14px 6px 20px;border-radius:20px;color:#fff;
-    background:linear-gradient(90deg,var(--sky),var(--magenta));box-shadow:0 6px 18px rgba(249,0,146,.25);}
-  .hero .since{position:relative;margin-top:26px;font-size:14px;color:var(--ink-soft);letter-spacing:2px;}
-  .hero .days{position:relative;margin:6px 0 0;font-weight:900;line-height:1;letter-spacing:-2px;
-    font-size:88px;font-size:clamp(72px,26vw,132px);font-variant-numeric:tabular-nums;
+  /* 一行：相遇第 3691 天 */
+  .hero .count{position:relative;display:flex;align-items:baseline;justify-content:center;}
+  .hero .pre,.hero .unit{font-size:18px;font-weight:800;letter-spacing:2px;color:var(--ink);}
+  .hero .pre{margin-right:10px;}
+  .hero .unit{margin-left:10px;}
+  /* 天色 → 水蓝 → 金黄 → 粉 → 洋红：直接蓝到洋红中间会混出紫色，客户不要紫色 */
+  .hero .days{position:relative;font-weight:900;line-height:1;letter-spacing:-2px;
+    font-size:80px;font-size:clamp(64px,21vw,124px);font-variant-numeric:tabular-nums;
     color:var(--magenta);
-    background:linear-gradient(120deg,var(--sky) 10%,var(--magenta) 90%);
+    background:linear-gradient(120deg,#32b5e1 0%,#3cc8c4 28%,#ffc24a 55%,#ff6fa9 80%,#f90092 100%);
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
-  .hero .unit{position:relative;margin-top:6px;font-size:17px;font-weight:800;letter-spacing:4px;}
   .hero .dates{position:relative;margin-top:18px;font-size:12px;color:var(--ink-soft);letter-spacing:1px;
     font-variant-numeric:tabular-nums;}
   .scroll-hint{position:absolute;left:0;right:0;bottom:22px;bottom:calc(22px + env(safe-area-inset-bottom));
@@ -66,7 +67,7 @@
 
   /* ================= 平行时空入口 ================= */
   .portal{position:relative;display:block;border-radius:22px;overflow:hidden;margin-bottom:16px;
-    box-shadow:0 16px 40px rgba(47,42,69,.16);transition:transform .2s;}
+    box-shadow:0 16px 40px rgba(30,34,42,.16);transition:transform .2s;}
   .portal:active{transform:scale(.985);}
   .portal .art{position:relative;height:0;padding-top:62%;background-size:cover;background-position:center;}
   .portal.big .art{padding-top:78%;}
@@ -79,19 +80,21 @@
     padding:5px 12px;border-radius:14px;color:#fff;letter-spacing:1px;box-shadow:0 4px 12px rgba(0,0,0,.2);}
   .chip.live{background:#18b26b;}
   .chip.soon{background:var(--pumpkin);}
-  .chip.past{background:rgba(47,42,69,.72);}
-  .chip.prep{background:rgba(47,42,69,.72);}
+  .chip.past{background:rgba(30,34,42,.72);}
+  .chip.prep{background:rgba(30,34,42,.72);}
   .chip .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;margin-right:6px;
     vertical-align:1px;animation:blink 1.2s ease-in-out infinite;}
   @keyframes blink{50%{opacity:.25}}
-  .stat{margin-top:10px;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;}
+  /* 卡片名字下只有一行：回顾 = 深色（已开启 N 个故事）；其余 = 主题色（敬请期待 / 倒计时） */
+  .stat{margin-top:8px;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .portal .stat.past{color:var(--ink);}
 
   /* 万圣节入口：夜空 + 发光的门 */
   .t-halloween .art{background-color:var(--night);
     background-image:
       radial-gradient(circle at 80% 22%, #fff4c8 0 6%, rgba(255,220,130,.35) 6.5%, rgba(255,220,130,0) 15%),
       radial-gradient(ellipse at 50% 120%, rgba(255,122,26,.5) 0%, rgba(255,122,26,0) 60%),
-      linear-gradient(180deg,#140a24 0%,#3a1a5c 100%);}
+      linear-gradient(180deg,#060b16 0%,#1b2c4a 100%);}
   .t-halloween .go{background:var(--pumpkin);}
   .t-halloween .stat{color:var(--pumpkin);}
   /* 824 入口：樱花树 */
@@ -110,7 +113,7 @@
   .node::before{content:"";position:absolute;left:-31px;top:4px;width:16px;height:16px;border-radius:50%;z-index:1;
     background:#fff;border:3px solid var(--magenta);box-shadow:0 0 0 3px var(--sky-soft);}
   .node.origin::before{background:linear-gradient(135deg,var(--sky),var(--magenta));border-color:#fff;}
-  .node.next::before{border-style:dashed;border-color:#c9c3d6;box-shadow:none;}
+  .node.next::before{border-style:dashed;border-color:#c9cdd4;box-shadow:none;}
   .node .d{font-size:12px;font-weight:800;color:var(--sky);letter-spacing:1px;font-variant-numeric:tabular-nums;}
   .node .t{margin-top:2px;font-size:16px;font-weight:800;}
   .node .s{margin-top:2px;font-size:12px;color:var(--ink-soft);}
@@ -223,13 +226,10 @@
       <path class="rb-mag rb-flow" d="M-20 690 C 100 760, 200 500, 200 400 S 280 40, 430 120" stroke-width="2"/>
     </svg>
     <div class="hero-inner" id="hero-inner">
-      <div class="tag">洋灵</div>
-      <div class="since">相遇的第</div>
-      <div class="days" id="days">0</div>
-      <div class="unit">天</div>
+      <div class="count"><span class="pre">相遇第</span><span class="days" id="days">0</span><span class="unit">天</span></div>
       <div class="dates" id="dates">2016.08.24 — </div>
     </div>
-    <div class="scroll-hint" id="scroll-hint">往下滑，进入平行时空<i></i></div>
+    <div class="scroll-hint" id="scroll-hint">进入平行时空<i></i></div>
   </header>
 
   <main class="wrap">
@@ -259,7 +259,7 @@
     </footer>
   </main>
 
-  <script src="/config.js?v=13"></script>
+  <script src="/config.js?v=15"></script>
   <script>
   /* =========================================================
      洋灵主页 v2（原型）
@@ -307,11 +307,11 @@
   var DOOR_HTML = '<div class="door-mini"><div class="box">' +
     '<div class="hole inside"><span>🎃</span></div>' +
     '<svg class="frame" viewBox="0 0 200 300" preserveAspectRatio="none" aria-hidden="true">' +
-      '<path fill-rule="evenodd" fill="#8a8196" stroke="#231a2c" stroke-width="3" d="M4 300 L4 104 A96 96 0 0 1 196 104 L196 300 Z M30 300 L30 110 A70 70 0 0 1 170 110 L170 300 Z"/>' +
-      '<path d="M86 8 L114 8 L110 40 L90 40 Z" fill="#9c93a8" stroke="#231a2c" stroke-width="3"/>' +
-      '<rect x="0" y="288" width="200" height="12" rx="3" fill="#6f6680" stroke="#231a2c" stroke-width="3"/></svg>' +
+      '<path fill-rule="evenodd" fill="#8c8f95" stroke="#1b1e24" stroke-width="3" d="M4 300 L4 104 A96 96 0 0 1 196 104 L196 300 Z M30 300 L30 110 A70 70 0 0 1 170 110 L170 300 Z"/>' +
+      '<path d="M86 8 L114 8 L110 40 L90 40 Z" fill="#9ea1a7" stroke="#1b1e24" stroke-width="3"/>' +
+      '<rect x="0" y="288" width="200" height="12" rx="3" fill="#6e7178" stroke="#1b1e24" stroke-width="3"/></svg>' +
     '<div class="hole leaf"><svg viewBox="0 0 140 260" preserveAspectRatio="none" aria-hidden="true">' +
-      '<path d="M0 260 L0 70 A70 70 0 0 1 140 70 L140 260 Z" fill="#6b3f22" stroke="#1a1020" stroke-width="5"/>' +
+      '<path d="M0 260 L0 70 A70 70 0 0 1 140 70 L140 260 Z" fill="#6b3f22" stroke="#14110e" stroke-width="5"/>' +
       '<path d="M35 22 V258 M70 2 V258 M105 22 V258" stroke="#4a2a15" stroke-width="2.5"/>' +
       '<rect x="18" y="150" width="104" height="90" rx="6" fill="none" stroke="#4a2a15" stroke-width="4"/>' +
       '<rect x="2" y="78" width="10" height="16" rx="2" fill="#c9a24a"/><rect x="2" y="206" width="10" height="16" rx="2" fill="#c9a24a"/>' +
@@ -319,7 +319,7 @@
     '</div></div>';
 
   var THEMES = [
-    { key:"halloween", name:"万圣之夜", date:"10.31", url:"/halloween/", rpc:"public_get_doors",
+    { key:"halloween", name:"万圣街 1031", date:"10.31", url:"/halloween/", rpc:"public_get_doors",
       desc:"一扇扇门，到时间就能推开", unit:"扇门" },
     { key:"824", name:"树信归期 · 824", date:"08.24", url:"/?from=home", rpc:"public_get_letters",
       desc:"樱花树下的 52 封信", unit:"封信", cover:(CFG.HOME_COVERS||{})["824"] || "/assets/sakura-bg.jpg" }
@@ -351,13 +351,13 @@
     var hms = pad2(Math.floor(s%86400/3600)) + ":" + pad2(Math.floor(s%3600/60)) + ":" + pad2(s%60);
     return d > 0 ? d + " 天 " + hms : hms;
   }
+  function nextHTML(st){ return '<span data-next="' + st.next + '">' + countdown(st.next - Date.now()) + '</span>'; }
   function statLine(t){
     var st = t.st;
-    if(st.k === "prep") return "正在准备中，敬请期待";
-    if(st.k === "past") return st.total + " " + t.unit + "，全部开启";
-    var s = "已开启 " + st.opened + " / " + st.total + " " + t.unit;
-    if(st.next) s += ' · 下一' + t.unit.slice(-1) + ' <span data-next="' + st.next + '">' + countdown(st.next - Date.now()) + '</span>';
-    return s;
+    if(st.k === "prep") return "敬请期待";
+    if(st.k === "past") return "已开启" + st.total + "个故事";
+    if(st.k === "soon") return st.next ? "即将开启 · " + nextHTML(st) : "即将开启";
+    return "已开启" + st.opened + "个故事" + (st.next ? " · 下一个 " + nextHTML(st) : "");
   }
 
   function portalHTML(t, big){
@@ -367,7 +367,7 @@
       : '<div class="art" style="background-image:url(\'' + esc(t.cover) + '\')"></div>';
     return '<a class="portal rv t-' + t.key + (big ? ' big' : '') + '" href="' + t.url + '" data-target="portal-' + t.key + '">' + chip + art +
       '<div class="body"><div class="row"><h3>' + esc(t.name) + '</h3><span class="go">进入</span></div>' +
-      '<p>' + esc(t.desc) + '</p><div class="stat">' + statLine(t) + '</div></div></a>';
+      '<div class="stat ' + t.st.k + '">' + statLine(t) + '</div></div></a>';
   }
 
   function render(){
