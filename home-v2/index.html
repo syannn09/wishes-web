@@ -12,6 +12,7 @@
   :root{
     /* 应援色：天色 #32B5E1，洋红 #F90092 */
     --sky:#32b5e1; --sky-soft:#bfe8f7; --magenta:#f90092; --magenta-soft:#ffd0ea;
+    --mid:#1c1c1c; --mid-soft:#bdbdbd;   /* 天色和洋红之间一律用黑色过渡（浅色细线用浅灰）：直接相接会混出紫色 */
     --ink:#2a2d34; --ink-soft:#7b7f88; --paper:#fffafd; --line:#f0eaea;
     --night:#060b16; --pumpkin:#ff7a1a;
   }
@@ -53,12 +54,12 @@
     .hero .pre,.hero .unit{font-size:15px;letter-spacing:1px;}
     .hero .pre{margin-right:8px;} .hero .unit{margin-left:8px;}
   }
-  /* 左天色、右洋红（两人的应援色），中间用金色过渡：
+  /* 左天色、右洋红（两人的应援色），中间用黑色过渡：
      直接蓝到洋红会混出紫色，客户不要紫色 */
   .hero .days{position:relative;font-weight:900;line-height:1;letter-spacing:-2px;
     font-size:80px;font-size:clamp(64px,21vw,124px);font-variant-numeric:tabular-nums;
     color:var(--magenta);
-    background:linear-gradient(90deg,#32b5e1 0%,#32b5e1 26%,#f2b705 50%,#f90092 74%,#f90092 100%);
+    background:linear-gradient(90deg,#32b5e1 0%,#32b5e1 28%,#1c1c1c 50%,#f90092 72%,#f90092 100%);
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
   /* 日期挂在数字正下方，不参与置中（否则数字会被往上推、离开交叉点） */
   .hero .dates{position:absolute;left:0;right:0;top:100%;margin-top:18px;font-size:12px;color:var(--ink-soft);letter-spacing:1px;
@@ -66,7 +67,7 @@
   .scroll-hint{position:absolute;left:0;right:0;bottom:22px;bottom:calc(22px + env(safe-area-inset-bottom));
     text-align:center;font-size:12px;color:var(--ink-soft);letter-spacing:2px;}
   .scroll-hint i{display:block;width:2px;height:26px;margin:8px auto 0;border-radius:2px;
-    background:linear-gradient(var(--sky),var(--magenta));animation:hint 1.6s ease-in-out infinite;}
+    background:linear-gradient(var(--sky),var(--mid),var(--magenta));animation:hint 1.6s ease-in-out infinite;}
   @keyframes hint{0%{transform:scaleY(.3);transform-origin:top;opacity:.4}50%{transform:scaleY(1);opacity:1}100%{transform:scaleY(.3);transform-origin:bottom;opacity:.4}}
 
   /* ================= 区块标题 ================= */
@@ -75,7 +76,7 @@
   .sec-h h2{margin:0;font-size:21px;font-weight:900;letter-spacing:2px;}
   .sec-h span{margin-left:10px;font-size:12px;color:var(--ink-soft);letter-spacing:1px;}
   .sec-h::after{content:"";flex:1;height:2px;margin-left:12px;border-radius:2px;align-self:center;
-    background:linear-gradient(90deg,var(--sky-soft),var(--magenta-soft));}
+    background:linear-gradient(90deg,var(--sky-soft),var(--mid-soft),var(--magenta-soft));}
 
   /* ================= 平行时空入口 ================= */
   .portal{position:relative;display:block;border-radius:22px;overflow:hidden;margin-bottom:16px;
@@ -124,7 +125,7 @@
   .node{position:relative;display:block;padding:2px 0 22px;}
   .node::before{content:"";position:absolute;left:-31px;top:4px;width:16px;height:16px;border-radius:50%;z-index:1;
     background:#fff;border:3px solid var(--magenta);box-shadow:0 0 0 3px var(--sky-soft);}
-  .node.origin::before{background:linear-gradient(135deg,var(--sky),var(--magenta));border-color:#fff;}
+  .node.origin::before{background:linear-gradient(135deg,var(--sky),var(--mid),var(--magenta));border-color:#fff;}
   .node.next::before{border-style:dashed;border-color:#c9cdd4;box-shadow:none;}
   .node .d{font-size:12px;font-weight:800;color:var(--sky);letter-spacing:1px;font-variant-numeric:tabular-nums;}
   .node .t{margin-top:2px;font-size:16px;font-weight:800;}
@@ -145,7 +146,7 @@
   footer{padding:40px 0 30px;padding-bottom:calc(30px + env(safe-area-inset-bottom));text-align:center;
     font-size:12px;color:var(--ink-soft);letter-spacing:1px;}
   footer .bar{width:60px;height:4px;margin:0 auto 12px;border-radius:4px;
-    background:linear-gradient(90deg,var(--sky),var(--magenta));}
+    background:linear-gradient(90deg,var(--sky),var(--mid),var(--magenta));}
 
   /* ================= 飘落的两色花瓣 / 点一下冒爱心 ================= */
   #petals{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:5;overflow:hidden;}
@@ -158,7 +159,7 @@
   /* ================= 滑动特效 ================= */
   /* 顶部进度条：天色 → 洋红 */
   #progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:20;pointer-events:none;
-    background:linear-gradient(90deg,var(--sky),var(--magenta));transform-origin:0 50%;transform:scaleX(0);}
+    background:linear-gradient(90deg,var(--sky),var(--mid),var(--magenta));transform-origin:0 50%;transform:scaleX(0);}
   /* 首屏视差（JS 写 transform / opacity） */
   .hero-inner{position:relative;will-change:transform,opacity;}
   .ribbons{will-change:transform;}
