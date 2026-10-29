@@ -470,7 +470,7 @@
     enter();
   };
   $("#logoutBtn").onclick=()=>{ localStorage.removeItem("yl_admin_key"); location.reload(); };
-  $("#previewBtn").onclick=()=>{ window.open("./index.html?preview="+encodeURIComponent(KEY),"_blank"); };
+  $("#previewBtn").onclick=()=>{ window.open("/824/?preview="+encodeURIComponent(KEY),"_blank"); };
 
   /* ================= 主题 =================
      每个主题玩法不同，各自一套资料和分页（panel）。

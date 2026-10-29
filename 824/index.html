@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>树信归期 · 824</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+<link rel="alternate icon" href="/assets/favicon.ico" />
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+<meta name="theme-color" content="#f90092" />
+<style>
+  :root{
+    /* 应援色：天色 #32B5E1，洋红 #F90092 */
+    --sky-blue:#32b5e1; --magenta:#f90092;
+    --sakura:#f7b5cf; --sakura-deep:#e8749f;
+    --paper:#fdfbf7; --paper-edge:#e8dcc8;
+    --envelope:#c9d6e8; --envelope-dark:#a8bcd6;
+    --gold:#ffd76b; --gold-deep:#f5b942;
+    --ink:#3a3550; --ink-soft:#7a7590;
+    --panel:rgba(255,255,255,.94);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);}
+  /* iOS Safari 的状态栏 / 底部工具栏是半透明的，背后不画 fixed 元素、只画根元素底色 ——
+     所以 html 也铺同一张背景图，并把高度撑到完整屏幕（lvh = 工具栏收起时的高度），
+     工具栏后面露出的就是图而不是一条纯色带。
+     底色 #a9adc9 = 标题区（淡紫蓝）的颜色：新版 Safari 顶部状态栏抓这个单一底色，要和下面接得起来 */
+  html{background:#a9adc9 center bottom / cover no-repeat;
+    min-height:100vh;min-height:100lvh;
+  /* 外层整页锁住不能滚：#backdrop 撑到完整屏幕高（lvh）会比工具栏展开时的可视区域高，
+     iOS Safari 有时无视 body 的 overflow，会整页被拖动 / 回弹。页面只在自己的区域里滑 */
+  html{overflow:hidden;}
+  /* 不设 position：背景层 #backdrop 要以整个屏幕为准定位，不能被 body 的 overflow 裁掉 */
+  body{overflow:hidden;background:transparent;}
+
+  /* ---------- 背景层容器 ----------
+     新版 iOS Safari 会把「贴着屏幕边缘的 position:fixed 元素」的颜色，
+     自己延伸成状态栏 / 工具栏后面的一整片纯色。
+     樱花树、柔光罩、飘落花瓣都放在这个「一般的」容器里（absolute，不是 fixed），
+     高度撑满完整屏幕（lvh，含工具栏后面）。页面本身不会滚动，看起来和 fixed 一样。 */
+  #backdrop{position:absolute;top:0;left:0;right:0;height:100vh;height:100lvh;overflow:hidden;
+    z-index:0;pointer-events:none;}
+  /* 再往下接一段（fixed，贴在可视区域正下方，不增加页面高度）：
+     Safari 实际画到的区域比可视区域再低一点，工具栏下面那一小条才不会露底色 */
+  #backdrop-tail{position:fixed;left:0;right:0;top:100%;height:40vh;z-index:0;pointer-events:none;
+    background:#e9d3d9;}
+
+  /* ---------- 背景：樱花树，轻微模糊降低视觉负担 ---------- */
+  #bg{position:absolute;inset:-24px;z-index:0;pointer-events:none;
+    background-size:cover;background-position:center bottom;background-repeat:no-repeat;
+    filter:blur(3px) saturate(1.05);
+    transform:scale(1.04);
+    animation:bgFloat 26s ease-in-out infinite;}
+  /* 竖屏：图是 16:9，靠底对齐才留得住树干和树下的小鸡 */
+  @media(max-aspect-ratio:1/1){
+    #bg{background-position:center 78%;filter:blur(2.5px) saturate(1.05);}
+  }
+  @keyframes bgFloat{0%,100%{transform:scale(1.04)}50%{transform:scale(1.09)}}
+  /* 柔光罩：把背景压淡，让前景信封/卡片读得清 */
+  #bg-veil{position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:
+      radial-gradient(ellipse at 50% 38%, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 62%),
+      linear-gradient(180deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.05) 40%, rgba(255,240,248,.42) 100%);}
+  /* 弹窗打开时，背景再模糊一档 */
+  body.dimmed #bg{filter:blur(9px) saturate(.95) brightness(1.03);}
+
+  /* ---------- 飘落樱花 ---------- */
+  #petals{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden;}
+  .petal{position:absolute;top:-8vh;will-change:transform;
+    animation:petalFall linear forwards;}
+  .petal svg{display:block;animation:petalSpin ease-in-out infinite alternate;}
+  @keyframes petalFall{
+    0%  {transform:translate3d(0,0,0);opacity:0}
+    8%  {opacity:.95}
+    100%{transform:translate3d(var(--drift,10vw),112vh,0);opacity:.15}
+  }
+  @keyframes petalSpin{
+    from{transform:rotate(-40deg) rotateY(0deg)}
+    to  {transform:rotate(40deg) rotateY(180deg)}
+  }
+
+  /* ---------- 顶部标题 ---------- */
+  header{position:fixed;top:0;left:0;right:0;z-index:6;text-align:center;
+    padding:calc(12px + env(safe-area-inset-top)) 14px 14px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(120,160,205,.55) 0%,rgba(140,175,210,.34) 55%,rgba(150,180,212,0) 100%);
+    backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);}
+  header h1{margin:0;font-size:clamp(20px,5.4vw,27px);letter-spacing:3px;font-weight:800;
+    color:#fff;text-shadow:0 2px 10px rgba(120,60,110,.45), 0 0 22px rgba(255,255,255,.35);}
+  header p{margin:5px 0 0;font-size:clamp(11px,3vw,13px);color:#fff;letter-spacing:1px;font-weight:500;
+    text-shadow:0 1px 6px rgba(120,60,110,.5);}
+  #countdown{margin-top:6px;font-size:clamp(11px,3.2vw,13px);color:#fff;font-weight:700;
+    text-shadow:0 1px 6px rgba(120,60,110,.6);}
+  #preview-flag{display:none;margin-top:6px;font-size:11px;color:#fff;font-weight:700;
+    background:rgba(249,0,146,.75);border-radius:12px;padding:3px 12px;}
+  body.is-preview #preview-flag{display:inline-block;}
+
+  /* ---------- 信封网格 ---------- */
+  #board{position:fixed;inset:0;z-index:4;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:calc(96px + env(safe-area-inset-top)) 14px calc(104px + env(safe-area-inset-bottom));}
+  #grid{display:grid;gap:10px;max-width:900px;margin:0 auto;justify-content:center;
+    grid-template-columns:repeat(auto-fit,minmax(78px,110px));}
+  @media(min-width:700px){ #grid{gap:14px;grid-template-columns:repeat(auto-fit,minmax(104px,132px));} }
+  /* 信封少的时候（824 刚开始）居中挂着，别孤零零缩在左上角 */
+  body[data-phase="reveal"] #board{display:flex;align-items:center;justify-content:center;
+    overflow-x:hidden;}
+  /* width:100% 让 #grid 有确定宽度 —— 作为 flex 子元素时宽度不定，
+     auto-fit 会拿 max-width:900px 算列数，排出 700px+ 比手机屏宽，能左右拖 */
+  body[data-phase="reveal"] #grid{margin:auto;width:100%;}
+  /* 没有底部按钮的阶段，下方留白收窄 */
+  body[data-phase="reveal"] #board,
+  body[data-phase="archive"] #board{padding-bottom:calc(28px + env(safe-area-inset-bottom));}
+
+  .env{position:relative;aspect-ratio:4/3;border:none;padding:0;cursor:pointer;
+    background:none;display:block;transition:transform .18s ease;}
+  .env:active{transform:scale(.94);}
+  .env svg{width:100%;height:100%;display:block;
+    filter:drop-shadow(0 3px 8px rgba(90,60,110,.28));}
+  .env .flap{transition:transform .35s cubic-bezier(.5,-0.4,.5,1.4);transform-origin:center top;}
+  .env.open .flap{transform:rotateX(165deg);}
+  .env .slot-label{position:absolute;left:0;right:0;bottom:5%;text-align:center;
+    font-size:clamp(8px,2.2vw,10px);font-weight:700;color:var(--ink);letter-spacing:.3px;
+    pointer-events:none;text-shadow:0 1px 2px rgba(255,255,255,.8);}
+  /* 未解锁：灰调、封口紧闭 */
+  .env.locked svg{filter:drop-shadow(0 2px 5px rgba(90,60,110,.22)) grayscale(.4);opacity:.9;}
+  /* 卡片底衬：让信封在花花绿绿的背景上也看得清 */
+  .env::before{content:"";position:absolute;inset:-4% -2%;border-radius:12px;
+    background:rgba(255,255,255,.34);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:-1;}
+  .env.unlocked::before{background:rgba(255,252,240,.6);}
+  /* 已解锁：金光呼吸 */
+  .env.unlocked svg{filter:drop-shadow(0 3px 10px rgba(245,185,66,.55));}
+  .env.unlocked{animation:envGlow 2.8s ease-in-out infinite;}
+  @keyframes envGlow{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+  .env .seal{transition:opacity .3s;}
+  .env.unlocked .seal{opacity:0;}
+
+  /* ---------- 底部按钮 ---------- */
+  #actions{position:fixed;bottom:0;left:0;right:0;z-index:8;display:flex;gap:10px;justify-content:center;
+    padding:12px 14px calc(16px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,rgba(255,245,250,0),rgba(255,240,248,.75));}
+  /* 824 / 825 没有任何按钮时，别留一条空白遮罩 */
+  body[data-phase="reveal"] #actions,
+  body[data-phase="archive"] #actions{display:none;}
+  .btn{border:none;border-radius:30px;padding:13px 24px;font-size:clamp(14px,4vw,16px);font-weight:700;
+    cursor:pointer;box-shadow:0 8px 22px rgba(232,116,159,.4);transition:transform .15s;letter-spacing:1px;}
+  .btn:active{transform:scale(.95);}
+  .btn-primary{background:var(--magenta);color:#fff;}
+  .btn-ghost{background:var(--panel);color:var(--magenta);box-shadow:0 6px 18px rgba(120,80,140,.2);}
+
+  /* ---------- 弹窗通用 ---------- */
+  .overlay{position:fixed;inset:0;z-index:20;background:rgba(60,40,80,.42);backdrop-filter:blur(6px);
+    display:none;align-items:center;justify-content:center;padding:16px;}
+  .overlay.show{display:flex;}
+
+  /* ---------- 信纸弹窗（照 coming soon 那张的样子）---------- */
+  .letter-sheet{position:relative;width:100%;max-width:400px;max-height:88vh;
+    animation:sheetRise .42s cubic-bezier(.2,.9,.3,1.2);}
+  @keyframes sheetRise{from{transform:translateY(28px) scale(.94);opacity:0}to{transform:none;opacity:1}}
+  /* 信封底托 */
+  .sheet-envelope{position:relative;background:linear-gradient(170deg,var(--envelope),var(--envelope-dark));
+    border-radius:14px;padding:16px 12px 20px;box-shadow:0 26px 60px rgba(60,40,80,.42);}
+  /* 信纸本体 */
+  .sheet-paper{position:relative;background:var(--paper);border-radius:8px;
+    padding:26px 22px 22px;max-height:74vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    box-shadow:0 4px 14px rgba(90,70,60,.2);}
+  /* 信纸上的樱花角饰 */
+  .sheet-paper::before{content:"";position:absolute;top:0;left:0;width:110px;height:96px;
+    background:radial-gradient(circle at 18% 22%, rgba(247,181,207,.55) 0 5px, transparent 6px),
+               radial-gradient(circle at 38% 12%, rgba(247,181,207,.4) 0 4px, transparent 5px),
+               radial-gradient(circle at 12% 48%, rgba(200,220,240,.5) 0 4px, transparent 5px),
+               radial-gradient(circle at 46% 40%, rgba(247,181,207,.32) 0 6px, transparent 7px);
+    pointer-events:none;border-radius:8px 0 0 0;}
+  .sheet-close{position:absolute;top:-13px;right:-8px;width:34px;height:34px;border:none;border-radius:50%;
+    background:rgba(58,53,80,.82);color:#fff;font-size:20px;line-height:1;cursor:pointer;z-index:3;
+    box-shadow:0 4px 12px rgba(0,0,0,.3);}
+
+  .sheet-slot{text-align:center;font-size:11px;letter-spacing:2.5px;color:var(--ink-soft);
+    text-transform:uppercase;margin-bottom:6px;}
+  .sheet-title{text-align:center;margin:0 0 4px;font-size:clamp(21px,5.6vw,26px);font-weight:800;
+    color:#4a6fa5;letter-spacing:1px;line-height:1.3;}
+  .sheet-club{text-align:center;font-size:10px;letter-spacing:2px;color:var(--ink-soft);margin-bottom:14px;}
+  .sheet-rule{height:1px;background:linear-gradient(90deg,transparent,var(--paper-edge),transparent);margin:14px 0;}
+
+  .sheet-body{white-space:pre-wrap;line-height:1.85;font-size:15px;color:var(--ink);}
+  .sheet-media{width:100%;border-radius:10px;margin-top:14px;display:block;}
+  .sheet-video{width:100%;aspect-ratio:16/9;border-radius:10px;margin-top:14px;border:none;display:block;background:#000;}
+  /* 信纸里的链接按钮：天蓝底 + 白字，纯色无渐变 */
+  .sheet-link{display:block;text-align:center;margin-top:16px;
+    background:var(--sky-blue);color:#fff;text-decoration:none;
+    padding:12px 20px;border-radius:24px;font-weight:800;font-size:15px;
+    box-shadow:0 6px 16px rgba(50,181,225,.35);}
+  .sheet-author{display:flex;align-items:center;gap:11px;margin-top:18px;padding-top:14px;
+    border-top:1px dashed var(--paper-edge);}
+  .sheet-author .av{width:42px;height:42px;border-radius:50%;object-fit:cover;flex:none;
+    background:linear-gradient(135deg,var(--sakura),var(--sky-blue));
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:17px;}
+  .sheet-author .meta .n{font-weight:700;font-size:14px;color:var(--magenta);}
+  .sheet-author .meta .b{font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5;}
+
+  /* 未解锁：预告态 */
+  .teaser-img-wrap{position:relative;margin-top:14px;border-radius:10px;overflow:hidden;}
+  .teaser-img-wrap img{width:100%;display:block;filter:blur(14px) saturate(1.15);transform:scale(1.12);}
+  .teaser-img-wrap::after{content:"🔒";position:absolute;inset:0;display:flex;align-items:center;
+    justify-content:center;font-size:30px;background:rgba(255,255,255,.28);}
+  .teaser-note{margin-top:16px;text-align:center;font-size:13px;color:var(--ink-soft);line-height:1.7;}
+  .teaser-countdown{margin-top:8px;text-align:center;font-size:15px;font-weight:800;color:var(--sakura-deep);
+    letter-spacing:1px;}
+
+  /* ---------- 牵红线 ---------- */
+  /* 高度贴合内容，最多 88vh —— 内容少时不会在下方留一大片空白 */
+  #match-modal .modal-game{position:relative;background:var(--panel);border-radius:22px;
+    width:100%;max-width:760px;height:auto;max-height:88vh;min-height:min(460px,80vh);
+    display:flex;flex-direction:column;
+    box-shadow:0 26px 60px rgba(60,40,80,.42);overflow:hidden;}
+  .game-head{padding:10px 16px 7px;text-align:center;flex:none;border-bottom:1px solid rgba(0,0,0,.06);}
+  .game-head h3{margin:0;font-size:17px;color:var(--magenta);}
+  .game-head p{margin:4px 0 0;font-size:12px;color:var(--ink-soft);}
+  #game-score{font-size:12px;font-weight:700;color:var(--sky-blue);margin-top:4px;}
+  .game-close{position:absolute;top:10px;right:12px;width:32px;height:32px;border:none;border-radius:50%;
+    background:rgba(58,53,80,.1);color:var(--ink);font-size:19px;line-height:1;cursor:pointer;z-index:5;}
+  /* ---------- 牵红线 · 挂牌场景 ----------
+     樱花枝上挂着作品短册，下方是作者名牌。
+     点短册 → 垂下红线头；点对作者 → 红线画过去打结，双双化樱花；
+     点错 → 红线绷断落下。 */
+  /* flex 容器：让 #scene 撑满可用高度，卡片少时才能垂直居中 */
+  #game-area{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    display:flex;flex-direction:column;}
+  /* min-height + flex 居中：一关只有 4 对时，卡片在场景里垂直居中，
+     不会顶在上边、下面空一大块 */
+  #scene{position:relative;padding:10px 12px 12px;max-width:640px;margin:0 auto;width:100%;
+    flex:1;display:flex;flex-direction:column;justify-content:center;}
+  #string-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;overflow:visible;}
+
+  /* 樱花枝 + 挂绳 */
+  .branch-row{position:relative;padding-top:16px;margin-bottom:10px;}
+  .branch-svg{position:absolute;top:4px;left:-6px;right:-6px;width:calc(100% + 12px);height:14px;
+    pointer-events:none;}
+  .tags{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .tag-wrap{display:flex;flex-direction:column;align-items:center;min-width:0;
+    animation:tagSway 4.6s ease-in-out infinite alternate;transform-origin:50% -18px;}
+  .tag-wrap:nth-child(2){animation-delay:-1.6s;}
+  .tag-wrap:nth-child(3){animation-delay:-3.1s;}
+  @keyframes tagSway{from{transform:rotate(-1.2deg)}to{transform:rotate(1.2deg)}}
+  .tag-string{width:2px;height:20px;margin-top:-6px;border-radius:2px;
+    background:linear-gradient(#b09484,#d8c2b4);}
+  .tag-card{position:relative;width:100%;background:var(--paper);border-radius:10px;cursor:pointer;
+    user-select:none;overflow:visible;border:2px solid rgba(200,214,232,.6);
+    box-shadow:0 4px 10px rgba(120,80,140,.18);
+    transition:transform .2s,box-shadow .2s,border-color .2s;}
+  .tag-card:active{transform:scale(.96);}
+  .tag-band{background:var(--sky-blue);color:#fff;font-size:10px;font-weight:800;letter-spacing:2px;
+    text-align:center;padding:3px 4px;border-radius:7px 7px 0 0;}
+  /* 只用 -webkit-box（同一条规则里写两次 display，旧 WebKit 会算出塌陷高度）。
+     垂直居中靠 padding + min-height，不靠 flex —— 兼容 iOS / Android / 鸿蒙旧内核 */
+  /* 作品名最多 3 行。max-height 用 em 算准 3 行高度，overflow:hidden 硬裁 ——
+     不依赖 -webkit-line-clamp（部分内核会把 display:-webkit-box 规范化掉，
+     clamp 就失效，多出来的半行会露在外面）。
+     支援 line-clamp 的浏览器额外加省略号，锦上添花而非必需。 */
+  .tag-title{padding:9px 7px;font-size:12px;font-weight:700;line-height:1.45;color:var(--ink);
+    min-height:40px;max-height:calc(1.45em * 3 + 17px);overflow:hidden;  /* 3 行 + padding，留 1px 余量防露半行 */
+    text-align:center;overflow-wrap:anywhere;word-break:break-word;}
+  @supports (-webkit-line-clamp:3){
+    .tag-title{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
+  }
+  /* 选中：短册抬起 + 垂下一截晃动的红线头 */
+  .tag-wrap.picked .tag-card{border-color:#e8404f;transform:translateY(-3px);
+    box-shadow:0 0 0 4px rgba(232,64,79,.14),0 8px 18px rgba(232,64,79,.22);}
+  .tag-wrap.picked .tag-card::after{content:"";position:absolute;left:50%;bottom:-22px;width:2px;height:22px;
+    background:#e8404f;border-radius:2px;transform-origin:top center;
+    animation:threadSway .9s ease-in-out infinite alternate;}
+  .tag-wrap.picked .tag-card::before{content:"";position:absolute;left:50%;bottom:-27px;width:6px;height:6px;
+    margin-left:-2px;border-radius:50%;background:#e8404f;
+    transform-origin:50% -22px;animation:threadSway .9s ease-in-out infinite alternate;}
+  @keyframes threadSway{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
+
+  /* 作者名牌 */
+  .ag-label{text-align:center;font-size:11px;letter-spacing:2px;color:var(--ink-soft);
+    margin:14px 0 10px;}
+  #author-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .plaque{background:#fff;border-radius:11px;padding:8px 7px;cursor:pointer;text-align:center;
+    user-select:none;min-width:0;border:2px solid rgba(200,214,232,.6);
+    box-shadow:0 3px 9px rgba(120,80,140,.14);
+    transition:transform .2s,box-shadow .2s,border-color .2s;}
+  .plaque:active{transform:scale(.96);}
+  /* 单行截断用 ellipsis，不用 -webkit-box —— 后者当 flex 子元素时
+     在旧 iOS / 鸿蒙内核上会整块塌成 0 高度，名字就消失了 */
+  .plaque .pname{font-weight:800;font-size:13px;color:var(--ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .plaque .pbio{font-size:10.5px;color:var(--ink-soft);margin-top:3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .plaque.picked{border-color:#e8404f;
+    box-shadow:0 0 0 4px rgba(232,64,79,.14),0 6px 14px rgba(232,64,79,.2);}
+
+  .shakeit{animation:nodeShake .4s;}
+  @keyframes nodeShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  /* 牵好的一对：红线一直连着，卡片安定下来（停止摇晃、柔和、不可再点） */
+  .tag-wrap.tied{animation:none;}
+  .tag-wrap.tied .tag-card,.plaque.tied{cursor:default;opacity:.88;
+    border-color:rgba(232,64,79,.45);box-shadow:0 2px 8px rgba(232,64,79,.14);}
+  .tag-wrap.tied .tag-band{background:#f0a3ab;}
+
+  /* 红线 */
+  .rstring{fill:none;stroke:#e8404f;stroke-width:2.5;stroke-linecap:round;
+    filter:drop-shadow(0 1px 2px rgba(232,64,79,.4));}
+  .rstring.falls{transition:transform .5s ease-in,opacity .5s;transform:translateY(20px);opacity:0;}
+  .rknot{transform-box:fill-box;transform-origin:center;animation:knotPop .35s cubic-bezier(.3,1.6,.5,1) both;}
+  @keyframes knotPop{from{transform:scale(0)}to{transform:scale(1)}}
+
+  /* ---------- 左右布局（?layout=lr）----------
+     左：作品挂牌系在一根竖枝上；右：作者名牌；红线水平牵。 */
+  .lr-scene{position:relative;padding-left:24px;}
+  .trunk-svg{position:absolute;left:3px;top:-6px;height:calc(100% + 12px);width:14px;pointer-events:none;}
+  /* 间距全用 margin，不用 flex gap —— iOS 14.4 以下不支援，
+     @supports 侦测在旧内核上也不可靠，margin 所有设备行为一致 */
+  .lr-rows{display:flex;flex-direction:column;}
+  .lr-rows > .lr-row + .lr-row{margin-top:9px;}
+  /* 作者牌比作品牌略宽（名字长，少截断）；间距收窄留给内容；
+     stretch 让左右两张卡等高，一行看起来是齐的 */
+  .lr-row{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;align-items:stretch;}
+  .tag-wrap.lr{position:relative;display:block;transform-origin:-20px 50%;
+    animation:lrSway 5s ease-in-out infinite alternate;}
+  .lr-row:nth-child(2n)  .tag-wrap.lr{animation-delay:-1.7s;}
+  .lr-row:nth-child(3n)  .tag-wrap.lr{animation-delay:-3.2s;}
+  @keyframes lrSway{from{transform:rotate(-.7deg)}to{transform:rotate(.7deg)}}
+  /* 系在枝上的短绳 */
+  .tag-wrap.lr::before{content:"";position:absolute;left:-21px;top:50%;width:21px;height:2px;
+    border-radius:2px;background:linear-gradient(90deg,#b09484,#d8c2b4);}
+  /* 撑满整行高度，和右边作者牌齐平。
+     不用 flex:1 链（旧内核算不出来会塌陷），改用 width:100% + min-height */
+  .tag-wrap.lr{display:block;}
+  .tag-wrap.lr .tag-card{width:100%;}
+  .tag-wrap.lr .tag-title{min-height:34px;}
+  /* 左右布局选中：红线头从右侧探出去，指向作者那边 */
+  .tag-wrap.lr.picked .tag-card::after{left:auto;right:-22px;bottom:auto;top:50%;
+    width:22px;height:2px;transform-origin:left center;}
+  .tag-wrap.lr.picked .tag-card::before{left:auto;right:-27px;bottom:auto;top:calc(50% - 2px);
+    margin-left:0;transform-origin:-22px 50%;}
+
+  /* 关卡进度：一排小红结 */
+  #round-dots{display:flex;justify-content:center;margin-top:4px;}
+  .rdot + .rdot{margin-left:6px;}
+  .rdot{width:9px;height:9px;border-radius:50%;background:#eee3e6;transition:background .3s,box-shadow .3s;}
+  .rdot.done{background:#e8404f;box-shadow:0 0 6px rgba(232,64,79,.5);}
+  .rdot.now{background:#fff;border:2px solid #e8404f;}
+  /* 配对成功飘出的花瓣 */
+  .pburst{position:absolute;width:11px;height:11px;pointer-events:none;z-index:8;
+    border-radius:80% 0 80% 0;animation:pburst .8s ease-out forwards;}
+  @keyframes pburst{
+    from{transform:translate(0,0) rotate(0) scale(1);opacity:.95}
+    to  {transform:translate(var(--dx),var(--dy)) rotate(220deg) scale(.4);opacity:0}
+  }
+  /* 过关横幅 */
+  #round-banner{position:absolute;inset:0;z-index:7;display:none;align-items:center;justify-content:center;
+    pointer-events:none;}
+  #round-banner.show{display:flex;}
+  #round-banner span{background:rgba(255,255,255,.95);border-radius:20px;padding:14px 30px;
+    font-size:17px;font-weight:800;color:var(--magenta);box-shadow:0 10px 30px rgba(120,80,140,.25);
+    animation:bannerPop .5s ease;}
+  @keyframes bannerPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+  #game-done{position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;
+    justify-content:center;background:rgba(255,255,255,.94);text-align:center;padding:24px;}
+  #game-done.show{display:flex;}
+  #game-done .big{font-size:44px;margin-bottom:10px;}
+  #game-done h4{margin:0 0 8px;font-size:20px;color:var(--magenta);}
+  #game-done p{margin:0 0 18px;font-size:14px;color:var(--ink-soft);line-height:1.7;}
+  /* 答错弹窗：和答对弹窗同一张卡片，只有标题是红的 */
+  #oops{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
+    background:rgba(60,40,80,.28);backdrop-filter:blur(2px);padding:14px;}
+  #oops.show{display:flex;}
+  #oops h4{color:#e8404f;}
+  /* 答错时的计数文案：这一局牵好了几根（数字标红，同旧版） */
+  .cg-tally{margin:12px 0 16px;font-size:14px;color:var(--ink-soft);line-height:1.7;}
+  .cg-tally b{color:#e8404f;font-size:17px;}
+
+  /* 答对弹窗：恭喜解锁一根红线 */
+  #congrats{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
+    background:rgba(60,40,80,.28);backdrop-filter:blur(2px);padding:14px;}
+  #congrats.show{display:flex;}
+  /* 卡片最高不超过弹窗可用高度，内容多了自己滚，按钮永远露得出来 */
+  .cg-card{background:#fff;border-radius:20px;padding:22px 20px;max-width:340px;width:100%;text-align:center;
+    box-shadow:0 18px 46px rgba(120,80,140,.35);animation:bannerPop .4s cubic-bezier(.3,1.4,.5,1);
+    max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .cg-big{font-size:38px;margin-bottom:6px;line-height:1;}
+  /* 表情包（mp4 动图或图片）：弹出来的感觉。
+     240px 是理想尺寸，矮屏幕上按可用高度缩，不把按钮挤出画面 */
+  .sticker{width:min(240px,52vw,34vh);height:min(240px,52vw,34vh);
+    object-fit:cover;border-radius:16px;display:block;margin:0 auto;
+    box-shadow:0 8px 22px rgba(120,80,140,.25);
+    animation:stickerPop .45s cubic-bezier(.3,1.5,.5,1);}
+  @keyframes stickerPop{from{transform:scale(.4) rotate(-8deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+  #oops .sticker{margin-bottom:4px;}
+  .cg-card h4{margin:0 0 8px;font-size:17px;color:#e8404f;}
+  .cg-card .cg-work{margin:10px 0 0;font-size:17px;font-weight:800;color:var(--ink);}
+  .cg-card .cg-sub{margin:4px 0 16px;font-size:12px;color:var(--ink-soft);}
+  .cg-btns{display:flex;justify-content:center;}
+  .cg-btns .btn + .btn{margin-left:9px;}
+  .cg-btns .btn{padding:11px 18px;font-size:14px;}
+
+  /* 作者名牌上的统一头像 */
+  /* 不用任何百分比高度：.plaque 本身是 grid 子元素，
+     align-items:stretch 会自动拉到和同行等高。
+     min-height:100% 在旧 WebKit（微信内置浏览器）里是循环依赖 ——
+     行高由内容定、内容又要 100% 行高，它会按整个容器高度算，
+     卡片直接撑成整屏高。 */
+  .plaque{display:flex;align-items:center;gap:8px;text-align:left;box-sizing:border-box;}
+  .plaque .pav{width:34px;height:34px;border-radius:50%;flex:none;object-fit:cover;
+    border:1.5px solid rgba(232,64,79,.25);}
+  .plaque .ptext{min-width:0;flex:1 1 auto;}
+
+
+  #fireworks{position:fixed;inset:0;z-index:9;pointer-events:none;display:none;}
+  /* 返回主题选择：只有从 /home 点进来（?from=home）才显示，直接开根网址的画面不变 */
+  #btn-home{display:none;position:fixed;left:12px;top:12px;top:calc(12px + env(safe-area-inset-top));z-index:9;
+    width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.72);color:var(--magenta);
+    align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(120,80,140,.25);text-decoration:none;}
+  #btn-home svg{width:18px;height:18px;}
+  body.from-home #btn-home{display:flex;}
+  .toast{position:fixed;top:calc(84px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:40;
+    background:rgba(58,53,80,.94);color:#fff;padding:11px 20px;border-radius:22px;font-size:14px;
+    opacity:0;transition:opacity .3s;max-width:86vw;text-align:center;pointer-events:none;}
+  .toast.show{opacity:1;}
+  .empty{text-align:center;color:#fff;font-size:14px;padding:40px 20px;line-height:1.8;
+    text-shadow:0 1px 6px rgba(120,60,110,.5);}
+</style>
+</head>
+<body>
+  <div id="backdrop-tail"></div>
+  <div id="backdrop">
+    <div id="bg"></div>
+    <div id="bg-veil"></div>
+    <div id="petals"></div>
+  </div>
+
+  <a id="btn-home" href="/" aria-label="返回主题选择">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+
+  <header>
+    <h1>树信归期</h1>
+    <p id="subtitle">824</p>
+    <div id="countdown"></div>
+    <div id="preview-flag">预览模式 · 全部解锁</div>
+  </header>
+
+  <div id="board">
+    <div id="grid"></div>
+  </div>
+
+  <div id="actions">
+    <button class="btn btn-primary" id="btn-match">🔗 牵红线</button>
+  </div>
+
+  <!-- 信件弹窗 -->
+  <div class="overlay" id="letter-modal">
+    <div class="letter-sheet">
+      <button class="sheet-close" data-close>×</button>
+      <div class="sheet-envelope">
+        <div class="sheet-paper" id="sheet-paper"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 牵红线 -->
+  <div class="overlay" id="match-modal">
+    <div class="modal-game">
+      <button class="game-close" data-close>×</button>
+      <div class="game-head">
+        <h3>牵红线</h3>
+        <p>猜一猜谁创作了这个版本的洋灵</p>
+        <div id="game-score"></div>
+        <div id="round-dots"></div>
+      </div>
+      <div id="game-area">
+        <div id="scene"></div>
+        <div id="round-banner"><span></span></div>
+      </div>
+
+      <!-- 三个覆盖层挂在 .modal-game 上（不是会滚动的 #game-area）：
+           盖住整个弹窗，矮屏幕上按钮才不会被截掉 -->
+
+      <!-- 答对：弹表情包 -->
+      <div id="congrats">
+        <div class="cg-card">
+          <div class="cg-big">🎈</div>
+          <p class="cg-work"></p>
+          <p class="cg-sub">完整内容 824 当天准时开启</p>
+          <div class="cg-btns">
+            <button class="btn btn-primary" id="cg-next">继续牵线</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 答错：红线断了，弹一下继续牵（不结束、不用重连对的） -->
+      <div id="oops">
+        <div class="cg-card">
+          <div class="cg-big">🥀</div>
+          <p class="cg-tally">这一局你牵好了 <b id="go-count">0</b> 根红线</p>
+          <div class="cg-btns">
+            <button class="btn btn-primary" id="oops-next">继续牵线</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="game-done">
+        <div class="big">🌸</div>
+        <h4>52 根红线，全部牵好！</h4>
+        <p>你认出了每一位创作者<br>谢谢他们为 824 做的一切</p>
+        <button class="btn btn-primary" id="game-restart">再玩一次</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="fireworks"></canvas>
+  <div class="toast" id="toast"></div>
+
+  <script src="/config.js?v=16"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- 演示数据：只在 ?demo=1 时真正被用到 -->
+  <script src="/demo-data.js?v=14"></script>
+  <script src="/app.js?v=16"></script>
+</body>
+</html>
