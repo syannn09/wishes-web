@@ -157,8 +157,18 @@ function setupSky(){
   $("#subtitle").textContent = H.SUBTITLE || "";
   if(H.BG_IMAGE){
     $("#sky").classList.add("has-img");
+    document.body.classList.add("has-bg");
+    document.documentElement.classList.add("has-bg");
     $("#sky").style.backgroundImage = `url("${H.BG_IMAGE}")`;
-    document.documentElement.style.background = `var(--night) url("${H.BG_IMAGE}") center bottom / cover no-repeat`;
+    // 底色 = 背景图最上面的颜色：Safari 顶部状态栏抓的是这个单一底色
+    document.documentElement.style.background = `var(--bg-top) url("${H.BG_IMAGE}") center bottom / cover no-repeat`;
+  }
+  if(H.DECO_IMAGE){
+    const webp = H.DECO_IMAGE_WEBP ? `<source srcset="${H.DECO_IMAGE_WEBP}" type="image/webp">` : "";
+    $("#deco").innerHTML = `<picture>${webp}<img src="${H.DECO_IMAGE}" alt=""></picture>`;
+    // 宽屏改用背景图左右重复：用浏览器实际选中的那张（WebP 或 PNG）
+    const img = $("#deco img");
+    img.onload = function(){ $("#deco").style.backgroundImage = `url("${img.currentSrc || img.src}")`; };
   }
   const stars = $("#stars");
   for(let i = 0; i < 55; i++){

@@ -58,7 +58,11 @@ window.CONFIG = {
   HALLOWEEN: {
     TITLE:    "万圣街 1031",
     SUBTITLE: "左右滑动找门 · 时间到了就能推开",
-    BG_IMAGE:    "",   // 背景图，例如 "/assets/halloween/bg.webp"
+    BG_IMAGE:    "/assets/halloween/bg.jpg",   // 背景图（砖墙 + 地面），底部对齐
+    // 顶部装饰（灯串、幽灵、蜘蛛，透明底），贴着屏幕最上面：屏幕再矮也不会被裁掉
+    // 有 WebP 就用 WebP（小很多），旧手机退回 PNG
+    DECO_IMAGE:      "/assets/halloween/deco.png",
+    DECO_IMAGE_WEBP: "/assets/halloween/deco.webp",
     FRAME_IMAGE: "",   // 门框（所有门共用），例如 "/assets/halloween/frame.webp"
     DOOR_SOUND:  "/assets/halloween/door-open.mp3"
   },
