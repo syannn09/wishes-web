@@ -71,6 +71,6 @@ window.CONFIG = {
   // 主题选择页（/home）的封面图，留空用内建占位
   HOME_COVERS: {
     "824":       "/assets/sakura-bg.jpg",
-    "halloween": ""
+    "halloween": "/assets/halloween/bg.jpg?v=2"   // 和万圣街里的背景同一张
   }
 };
