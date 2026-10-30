@@ -23,8 +23,10 @@
      撑到完整屏幕高度（lvh），工具栏后面才不会露出一条颜色不一样的带子 */
   /* 底色用渐层最「顶端」的深夜色：Safari 顶部状态栏那一条抓的是这个单一底色，
      和夜空最上面同色才接得起来（底部已由 #backdrop 盖满） */
-  html{background:linear-gradient(180deg, var(--night) 0%, var(--night-2) 55%, var(--night-3) 100%) var(--night);
-    min-height:100vh;min-height:100lvh;
+  /* ⚠️ 这两个底色要直接写在 CSS 里，不能等 JS：Safari 在页面第一次画出来时就决定状态栏 / 工具栏后面的颜色，
+     之后 JS 再改它不会跟着变。--bg-top / --bg-floor = 背景图最上面和地面的颜色（下面定义） */
+  html{background:var(--bg-top);
+    min-height:100vh;min-height:100lvh;}
   /* 外层整页锁住不能滚：#backdrop 撑到完整屏幕高（lvh）会比工具栏展开时的可视区域高，
      iOS Safari 有时无视 body 的 overflow，会整页被拖动 / 回弹。页面只在自己的区域里滑 */
   html{overflow:hidden;}
@@ -42,7 +44,7 @@
   /* 夜空底下再接一段同色（fixed，贴在可视区域正下方，不增加页面高度）：
      Safari 实际画到的区域比可视区域再低一点，工具栏下面那一小条才不会露出深色底 */
   #backdrop-tail{position:fixed;left:0;right:0;top:100%;height:40vh;z-index:0;pointer-events:none;
-    background:linear-gradient(180deg,#22365a 0%,#1b2c4a 100%);}
+    background:var(--bg-floor);}
 
   /* ---------- 背景：夜空 + 月亮 + 星星 + 雾（设计稿到了就换 BG_IMAGE）---------- */
   #sky{position:absolute;top:0;right:0;bottom:0;left:0;z-index:0;pointer-events:none;
@@ -86,7 +88,6 @@
     #deco{height:calc(100vh * .4602 * .5009);background-image:var(--deco-url);background-repeat:repeat-x;background-size:auto 100%;background-position:center top;}
     #deco picture{display:none;}
   }
-  body.has-bg #backdrop-tail{background:var(--bg-floor);}
   /* 门：除了影子，再加一圈淡淡的橘光，像背景里被灯照到的墙；
      旁边的门不用半透明（会透出后面的墙），改成压暗 */
   body.has-bg .door-frame{filter:drop-shadow(0 10px 18px rgba(0,0,0,.6)) drop-shadow(0 0 14px rgba(255,110,30,.22));}
