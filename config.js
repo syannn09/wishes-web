@@ -59,6 +59,7 @@ window.CONFIG = {
     TITLE:    "万圣街 1031",
     SUBTITLE: "左右滑动找门 · 时间到了就能推开",
     BG_IMAGE:    "/assets/halloween/bg.jpg?v=2",   // 背景图（砖墙 + 地面），底部对齐
+    BG_IMAGE_WIDE: "/assets/halloween/bg-wide.jpg?v=1",   // 横版，电脑 / 平板横放用
     // 顶部装饰（灯串、幽灵、蜘蛛，透明底），贴着屏幕最上面：屏幕再矮也不会被裁掉
     // 有 WebP 就用 WebP（小很多），旧手机退回 PNG
     // 留空 = 不挂（换成暗色背景后先拿掉；图还在 assets/halloween/deco.*）

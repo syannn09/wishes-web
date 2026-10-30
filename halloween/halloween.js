@@ -162,9 +162,10 @@ function setupSky(){
     $("#sky").classList.add("has-img");
     document.body.classList.add("has-bg");
     document.documentElement.classList.add("has-bg");
-    $("#sky").style.backgroundImage = `url("${H.BG_IMAGE}")`;
-    // 底色 = 背景图最上面的颜色：Safari 顶部状态栏抓的是这个单一底色
-    document.documentElement.style.background = `var(--bg-top) url("${H.BG_IMAGE}") center bottom / cover no-repeat`;
+    // 图交给 CSS 按屏幕形状挑：直的用 BG_IMAGE，横的（电脑、平板横放）用 BG_IMAGE_WIDE
+    const root = document.documentElement.style;
+    root.setProperty("--bg-img", `url("${H.BG_IMAGE}")`);
+    root.setProperty("--bg-img-wide", `url("${H.BG_IMAGE_WIDE || H.BG_IMAGE}")`);
   }
   if(H.DECO_IMAGE){
     const webp = H.DECO_IMAGE_WEBP ? `<source srcset="${H.DECO_IMAGE_WEBP}" type="image/webp">` : "";

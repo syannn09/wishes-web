@@ -70,8 +70,19 @@
   /* 比手机宽的屏幕（平板、电脑）：背景图是直的，撑满会只剩地面 ——
      改成高度撑满、左右重复接下去（一整条街的墙）；顶部装饰跟着同宽重复。
      0.4602 = 背景图宽高比（851×1849），0.5009 = 装饰图高宽比（1170×586） */
+  /* 背景图：根元素也铺同一张（iOS Safari 工具栏后面只画根元素），
+     底色 = 图最上面的颜色（Safari 顶部状态栏抓的是这个单一底色） */
+  #sky.has-img{background-image:var(--bg-img);}
+  html.has-bg{background:var(--bg-top) var(--bg-img) center bottom / cover no-repeat;}
+  /* 横的屏幕（电脑、平板横放）：换横版图，墙和地面交界在图的 65%，门站在上面；
+     平板直放、手机还是用直图，底部对齐，上面切掉的只是砖墙 */
+  @media (min-aspect-ratio: 4/5){
+    :root{--bg-top:#190f0c; --bg-floor:#352721;}
+    #sky.has-img{background-image:var(--bg-img-wide);background-position:center 65%;}
+    html.has-bg{background:var(--bg-top) var(--bg-img-wide) center 65% / cover no-repeat;}
+  }
+  /* 顶部装饰在宽屏改成左右重复（装饰图是照手机宽度画的） */
   @media (min-aspect-ratio: 11/20){
-    #sky.has-img, html.has-bg{background-size:auto 100% !important;background-repeat:repeat-x !important;}
     #deco{height:calc(100vh * .4602 * .5009);background-image:var(--deco-url);background-repeat:repeat-x;background-size:auto 100%;background-position:center top;}
     #deco picture{display:none;}
   }
@@ -358,9 +369,9 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="/config.js?v=19"></script>
+  <script src="/config.js?v=20"></script>
   <!-- 演示数据：只在 ?demo=1 时真正被用到 -->
   <script src="/halloween/demo-doors.js?v=2"></script>
-  <script src="/halloween/halloween.js?v=8"></script>
+  <script src="/halloween/halloween.js?v=9"></script>
 </body>
 </html>
