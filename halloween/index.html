@@ -60,10 +60,10 @@
                radial-gradient(circle at 34% 70%, rgba(200,150,60,.18) 0 6%, transparent 7%),
                radial-gradient(circle at 58% 28%, rgba(200,150,60,.16) 0 5%, transparent 6%);}
   #sky.has-img ~ #moon{display:none;}
-  /* 有背景图（砖墙 + 米色地面，偏亮）：拿掉夜空的星星和雾，
-     门下面的字、翻页数字改深色；底下接的那段改成地面的米色 */
-  :root{--bg-top:#b2a6ac; --bg-floor:#dbcebd;}
-  body.has-bg #stars, body.has-bg .fog{display:none;}
+  /* 有背景图（暗色砖墙 + 地面）：拿掉夜空的星星（墙上不该有星星）；
+     --bg-top / --bg-floor = 图最上面和地面的颜色，接 iOS 状态栏和工具栏后面 */
+  :root{--bg-top:#110e0e; --bg-floor:#322927;}
+  body.has-bg #stars{display:none;}
   /* 顶部装饰：宽度跟屏幕一样，贴最上面（让开 iPhone 状态栏，灯串才不会被时间、电量挡住） */
   #deco{position:absolute;top:0;top:env(safe-area-inset-top);left:0;right:0;z-index:1;pointer-events:none;}
   #deco img{display:block;width:100%;height:auto;}
@@ -72,16 +72,17 @@
      0.4602 = 背景图宽高比（851×1849），0.5009 = 装饰图高宽比（1170×586） */
   @media (min-aspect-ratio: 11/20){
     #sky.has-img, html.has-bg{background-size:auto 100% !important;background-repeat:repeat-x !important;}
-    #deco{height:calc(100vh * .4602 * .5009);background-repeat:repeat-x;background-size:auto 100%;background-position:center top;}
+    #deco{height:calc(100vh * .4602 * .5009);background-image:var(--deco-url);background-repeat:repeat-x;background-size:auto 100%;background-position:center top;}
     #deco picture{display:none;}
   }
   body.has-bg #backdrop-tail{background:var(--bg-floor);}
-  body.has-bg .door-no{color:rgba(43,38,32,.5);}
-  body.has-bg .door-title{color:var(--ink);}
-  body.has-bg .door-cd{color:var(--pumpkin-deep);}
-  body.has-bg .door-cd.go{color:#3f7a1e;}
-  body.has-bg .door-cd .when{color:var(--ink-soft);}
-  body.has-bg #page-no, body.has-bg #swipe-hint{color:var(--ink);}
+  /* 门：除了影子，再加一圈淡淡的橘光，像背景里被灯照到的墙；
+     旁边的门不用半透明（会透出后面的墙），改成压暗 */
+  body.has-bg .door-frame{filter:drop-shadow(0 10px 18px rgba(0,0,0,.6)) drop-shadow(0 0 14px rgba(255,110,30,.22));}
+  body.has-bg .slide{opacity:1;-webkit-filter:brightness(.5);filter:brightness(.5);transition:transform .35s ease,filter .35s ease;}
+  body.has-bg .slide.current{-webkit-filter:none;filter:none;}
+  /* 地面有亮有暗：门下面的字和翻页数字垫一层暗影，在哪都看得清楚 */
+  body.has-bg .door-meta, body.has-bg #page-no, body.has-bg #swipe-hint{text-shadow:0 1px 3px rgba(0,0,0,.85),0 0 8px rgba(0,0,0,.6);}
   #stars{position:absolute;top:0;right:0;bottom:0;left:0;z-index:0;pointer-events:none;}
   .star{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;
     animation:twinkle ease-in-out infinite alternate;}
@@ -357,9 +358,9 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="/config.js?v=17"></script>
+  <script src="/config.js?v=18"></script>
   <!-- 演示数据：只在 ?demo=1 时真正被用到 -->
   <script src="/halloween/demo-doors.js?v=2"></script>
-  <script src="/halloween/halloween.js?v=7"></script>
+  <script src="/halloween/halloween.js?v=8"></script>
 </body>
 </html>

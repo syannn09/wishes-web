@@ -74,6 +74,7 @@ const LOCK_SVG = `<svg viewBox="0 0 40 48">
 </svg>`;
 
 // 石头拱门框：viewBox 200×300，门洞 = x30~170、拱顶 y40（和 CSS 的 .door-hole 对齐）
+// 配合暗色砖墙：深灰旧石头，外缘一圈橘色的光（像背景砖墙上的光），不用亮灰色
 const FRAME_SVG = (()=>{
   const joints = [];
   [28, 62, 118, 152].forEach(deg=>{
@@ -84,23 +85,25 @@ const FRAME_SVG = (()=>{
     joints.push(`M4 ${y} L30 ${y}`, `M170 ${y+ (k%2?8:-8)} L196 ${y+(k%2?8:-8)}`);
   });
   return `<svg viewBox="0 0 200 300" preserveAspectRatio="none">
-    <path fill-rule="evenodd" fill="#8c8f95" stroke="#1b1e24" stroke-width="3"
+    <path fill-rule="evenodd" fill="#3d3634" stroke="#120e0d" stroke-width="3"
       d="M4 300 L4 104 A96 96 0 0 1 196 104 L196 300 Z M30 300 L30 110 A70 70 0 0 1 170 110 L170 300 Z"/>
-    <path d="M12 300 L12 108 A88 88 0 0 1 60 30" fill="none" stroke="#a9adb4" stroke-width="3" opacity=".5"/>
-    <path d="${joints.join(" ")}" stroke="#474b52" stroke-width="2" fill="none" opacity=".8"/>
-    <path d="M86 8 L114 8 L110 40 L90 40 Z" fill="#9ea1a7" stroke="#1b1e24" stroke-width="3"/>
-    <rect x="0" y="288" width="200" height="12" rx="3" fill="#6e7178" stroke="#1b1e24" stroke-width="3"/>
+    <path d="M7 300 L7 104 A93 93 0 0 1 193 104 L193 300" fill="none" stroke="#ff7a1a" stroke-width="3" opacity=".45"/>
+    <path d="M33 300 L33 110 A67 67 0 0 1 167 110 L167 300" fill="none" stroke="#ff9a40" stroke-width="2" opacity=".25"/>
+    <path d="${joints.join(" ")}" stroke="#171211" stroke-width="2.4" fill="none" opacity=".9"/>
+    <path d="M86 8 L114 8 L110 40 L90 40 Z" fill="#4a4240" stroke="#120e0d" stroke-width="3"/>
+    <rect x="0" y="288" width="200" height="12" rx="3" fill="#2e2826" stroke="#120e0d" stroke-width="3"/>
   </svg>`;
 })();
 
 // 每扇门的配色 + 门上的小图案，按顺序轮流用，看起来「每扇门都不一样」
+// 配合暗色背景：木头都压暗、偏暖，小图案保持亮色当重点
 const DOOR_LOOKS = [
-  { wood:"#6b3f22", dark:"#4a2a15", emblem:"pumpkin" },
-  { wood:"#1f5a5c", dark:"#143e40", emblem:"ghost" },
-  { wood:"#2f5a3a", dark:"#1e3d26", emblem:"cat" },
-  { wood:"#6e1f2a", dark:"#4a121b", emblem:"skull" },
-  { wood:"#243a6b", dark:"#16264a", emblem:"moon" },
-  { wood:"#3a3530", dark:"#24201c", emblem:"web" }
+  { wood:"#5a321c", dark:"#3b200f", emblem:"pumpkin" },
+  { wood:"#26393a", dark:"#172526", emblem:"ghost" },
+  { wood:"#323a28", dark:"#20261a", emblem:"cat" },
+  { wood:"#561e1f", dark:"#381213", emblem:"skull" },
+  { wood:"#262d3d", dark:"#171c28", emblem:"moon" },
+  { wood:"#3a3330", dark:"#24201e", emblem:"web" }
 ];
 const EMBLEMS = {
   pumpkin:`<ellipse cx="70" cy="100" rx="24" ry="19" fill="#ff7a1a" stroke="#14110e" stroke-width="2.5"/>
@@ -134,7 +137,7 @@ function doorLeafSVG(i){
     <g clip-path="url(#${clip})">
       <path d="M35 0 V260 M70 0 V260 M105 0 V260" stroke="${look.dark}" stroke-width="2.5"/>
       <path d="M12 40 q6 60 -2 120 M52 30 q-6 70 4 150 M88 50 q6 60 -2 140 M122 30 q-5 90 3 190"
-        stroke="rgba(255,255,255,.08)" stroke-width="2" fill="none"/>
+        stroke="rgba(255,150,80,.1)" stroke-width="2" fill="none"/>
       <rect x="16" y="150" width="108" height="92" rx="6" fill="none" stroke="${look.dark}" stroke-width="4"/>
       <rect x="0" y="136" width="140" height="7" fill="${look.dark}" opacity=".7"/>
     </g>
@@ -168,7 +171,7 @@ function setupSky(){
     $("#deco").innerHTML = `<picture>${webp}<img src="${H.DECO_IMAGE}" alt=""></picture>`;
     // 宽屏改用背景图左右重复：用浏览器实际选中的那张（WebP 或 PNG）
     const img = $("#deco img");
-    img.onload = function(){ $("#deco").style.backgroundImage = `url("${img.currentSrc || img.src}")`; };
+    img.onload = function(){ $("#deco").style.setProperty("--deco-url", `url("${img.currentSrc || img.src}")`); };
   }
   const stars = $("#stars");
   for(let i = 0; i < 55; i++){
